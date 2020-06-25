@@ -1,5 +1,5 @@
 # Parallel Packed CSR
-A parallel implementation of the packed CSR data structure, based on its initial single threaded design[[1]](#1).
+A parallel implementation of the packed CSR data structure, based on its initial single threaded design[[1]](#1)(https://github.com/wheatman/Packed-Compressed-Sparse-Row/).
 Accepts a core graph, which it loads first and an update file, which it uses to update the core graph (insert or delete edges).
 Uses a thread pool to perform updates in parallel.
 
