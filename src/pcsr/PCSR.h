@@ -3,6 +3,8 @@
 //
 #include <shared_mutex>
 #include <atomic>
+#include <vector>
+
 using namespace std;
 #ifndef PCSR2_PCSR_H
 #define PCSR2_PCSR_H
@@ -60,8 +62,8 @@ public:
   // data members
   edge_list_t edges;
 
-  PCSR(uint32_t init_n, uint32_t, bool lock_search);
-  PCSR(uint32_t init_n, vector<condition_variable*> *cvs, bool search_lock);
+  PCSR(uint32_t init_n, uint32_t, bool lock_search, int domain = 0);
+  PCSR(uint32_t init_n, vector<condition_variable*> *cvs, bool search_lock, int domain = 0);
   ~PCSR();
   /** Public API */
   bool edge_exists(uint32_t src, uint32_t dest);
