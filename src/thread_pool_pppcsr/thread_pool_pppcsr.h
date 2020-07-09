@@ -1,14 +1,14 @@
 //
-// Created by Eleni Alevra on 02/06/2020.
+// Created by Christian Menges.
 //
 
 #include <queue>
 #include <vector>
 #include <thread>
-#include "../pcsr/PCSR.h"
+#include "../pppcsr/PPPCSR.h"
 using namespace std;
-#ifndef PCSR2_THREAD_POOL_H
-#define PCSR2_THREAD_POOL_H
+#ifndef PPPCSR_THREAD_POOL_H
+#define PPPCSR_THREAD_POOL_H
 
 /** Struct for tasks to the threads */
 struct task {
@@ -19,12 +19,12 @@ struct task {
 };
 
 
-class ThreadPool {
+class ThreadPoolPPPCSR {
 public:
-  PCSR* pcsr;
+  PPPCSR* pcsr;
 
-  explicit ThreadPool(const int NUM_OF_THREADS, bool lock_search);
-  ~ThreadPool() {
+  explicit ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search);
+  ~ThreadPoolPPPCSR() {
 
   }
   /** Public API */
@@ -44,4 +44,4 @@ private:
   void execute(int);
 };
 
-#endif //PCSR2_THREAD_POOL_H
+#endif //PPPCSR_THREAD_POOL_H
