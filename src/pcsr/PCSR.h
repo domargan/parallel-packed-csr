@@ -1,8 +1,8 @@
 //
 // Created by Eleni Alevra on 02/06/2020.
 //
-#include <shared_mutex>
 #include <atomic>
+#include <shared_mutex>
 #include <vector>
 
 using namespace std;
@@ -12,9 +12,9 @@ using namespace std;
 /** Types */
 typedef struct _node {
   // beginning and end of the associated region in the edge list
-  uint32_t beginning;     // deleted = max int
-  uint32_t end;           // end pointer is exclusive
-  uint32_t num_neighbors; // number of edges with this node as source
+  uint32_t beginning;      // deleted = max int
+  uint32_t end;            // end pointer is exclusive
+  uint32_t num_neighbors;  // number of edges with this node as source
 } node_t;
 
 // each node has an associated sentinel (max_int, offset) that gets back to its
@@ -24,10 +24,9 @@ typedef struct _node {
 // if value == UINT32_MAX, read it as null.
 typedef struct _edge {
   uint32_t src;
-  uint32_t dest; // destination of this edge in the graph, MAX_INT if this is a
+  uint32_t dest;  // destination of this edge in the graph, MAX_INT if this is a
   // sentinel
-  uint32_t
-      value; // edge value of zero means it a null since we don't store 0 edges
+  uint32_t value;  // edge value of zero means it a null since we don't store 0 edges
 } edge_t;
 
 typedef struct edge_list {
@@ -35,7 +34,7 @@ typedef struct edge_list {
   int H;
   int logN;
   shared_ptr<shared_timed_mutex> global_lock;
-  atomic<int> *node_version_counters; // Keeps a version number for each leaf node.
+  atomic<int> *node_version_counters;  // Keeps a version number for each leaf node.
   // The version number is incremented when a change happens
   edge_t *items;
 } edge_list_t;
@@ -45,11 +44,11 @@ typedef struct edge_list {
 // To avoid repeating this check during the actual insertion we pass this struct to it so it can immediately know
 // up to where it needs to redistribute
 typedef struct insertion_info {
-  bool slide_right; // false means slide_left
-  uint32_t first_empty; // first empty spot for slide
-  int max_len; // len to redistribute up to
-  int node_index_final; // final node index for redistr
-  bool double_list; // double_list during redistr
+  bool slide_right;      // false means slide_left
+  uint32_t first_empty;  // first empty spot for slide
+  int max_len;           // len to redistribute up to
+  int node_index_final;  // final node index for redistr
+  bool double_list;      // double_list during redistr
 } insertion_info_t;
 
 #define is_null(val) val == 0
@@ -58,12 +57,12 @@ typedef struct insertion_info {
 #define EDGE_NOT_FOUND -3
 
 class PCSR {
-public:
+ public:
   // data members
   edge_list_t edges;
 
   PCSR(uint32_t init_n, uint32_t, bool lock_search, int domain = 0);
-  PCSR(uint32_t init_n, vector<condition_variable*> *cvs, bool search_lock, int domain = 0);
+  PCSR(uint32_t init_n, vector<condition_variable *> *cvs, bool search_lock, int domain = 0);
   ~PCSR();
   /** Public API */
   bool edge_exists(uint32_t src, uint32_t dest);
@@ -72,30 +71,30 @@ public:
   void remove_edge(uint32_t src, uint32_t dest);
   void read_neighbourhood(int src);
 
-private:
+ private:
   // data members
   std::vector<node_t> nodes;
-  shared_timed_mutex** node_locks; // locks for every PCSR leaf node
-  bool lock_bsearch = false; // true if we lock during binary search
+  shared_timed_mutex **node_locks;  // locks for every PCSR leaf node
+  bool lock_bsearch = false;        // true if we lock during binary search
 
   // members used when parallel redistributing is enabled
-  bool adding_sentinels = false; // true if we are in the middle of inserting a sentinel node
-  mutex* redistr_mutex; // for synchronisation with the redistributing worker threads
-  condition_variable* redistr_cv; // for synchronisation with the redistributing worker threads
-  vector<mutex*> *redistr_locks; // for synchronisation with the redistributing worker threads
-  vector<condition_variable*> *redistr_cvs; // for synchronisation with the redistributing worker threads
+  bool adding_sentinels = false;              // true if we are in the middle of inserting a sentinel node
+  mutex *redistr_mutex;                       // for synchronisation with the redistributing worker threads
+  condition_variable *redistr_cv;             // for synchronisation with the redistributing worker threads
+  vector<mutex *> *redistr_locks;             // for synchronisation with the redistributing worker threads
+  vector<condition_variable *> *redistr_cvs;  // for synchronisation with the redistributing worker threads
 
   void redistribute(int index, int len);
   bool got_correct_insertion_index(edge_t ins_edge, uint32_t src, uint32_t index, edge_t elem, int node_index,
                                    int node_id, uint32_t &max_node, uint32_t &min_node);
-  pair<pair<int,int>, insertion_info_t*> acquire_insert_locks(uint32_t index, edge_t elem, uint32_t src, int ins_node_v,
-                                                              uint32_t left_node_bound, int tries);
-  pair<int,int> acquire_remove_locks(uint32_t index, edge_t elem, uint32_t src, int ins_node_v, uint32_t left_node_bound);
-  void release_locks(pair<int,int> acquired_locks);
-  void release_locks_no_inc(pair<int,int> acquired_locks);
+  pair<pair<int, int>, insertion_info_t *> acquire_insert_locks(uint32_t index, edge_t elem, uint32_t src,
+                                                                int ins_node_v, uint32_t left_node_bound, int tries);
+  pair<int, int> acquire_remove_locks(uint32_t index, edge_t elem, uint32_t src, int ins_node_v,
+                                      uint32_t left_node_bound);
+  void release_locks(pair<int, int> acquired_locks);
+  void release_locks_no_inc(pair<int, int> acquired_locks);
   uint32_t find_value(uint32_t src, uint32_t dest);
-  vector<uint32_t>
-  sparse_matrix_vector_multiplication(std::vector<uint32_t> const &v);
+  vector<uint32_t> sparse_matrix_vector_multiplication(std::vector<uint32_t> const &v);
   vector<float> pagerank(std::vector<float> const &node_values);
   vector<uint32_t> bfs(uint32_t start_node);
   void double_list();
@@ -119,4 +118,4 @@ private:
   void clear();
 };
 
-#endif //PCSR2_PCSR_H
+#endif  // PCSR2_PCSR_H
