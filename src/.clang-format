@@ -1,0 +1,9 @@
+# received from: https://github.com/AutoPas/AutoPas/blob/master/.clang-format
+
+# base is Google style guide
+BasedOnStyle: Google
+# we want more space per line
+ColumnLimit: 120
+# ensure consistent pointer alignment
+DerivePointerAlignment: false
+PointerAlignment: Right
