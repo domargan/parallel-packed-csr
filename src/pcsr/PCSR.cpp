@@ -1,6 +1,6 @@
 /**
  * This file was cloned from https://github.com/wheatman/Packed-Compressed-Sparse-Row/. The
- * parts of the code that I have added for the parallel version are marked by comments.
+ * parts of the code that Eleni Alevra has added for the parallel version are marked by comments.
  */
 #include "PCSR.h"
 
@@ -220,7 +220,7 @@ void PCSR::double_list() {
   edges.N *= 2;
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
-  // Added in my implementation - START
+  // Added by Eleni Alevra - START
   node_locks = (shared_timed_mutex **)realloc(node_locks, (edges.N / edges.logN) * sizeof(shared_timed_mutex *));
   edges.node_version_counters =
       (atomic<int> *)realloc(edges.node_version_counters, (edges.N / edges.logN) * sizeof(atomic_int));
@@ -228,7 +228,7 @@ void PCSR::double_list() {
     node_locks[i] = new shared_timed_mutex();
     edges.node_version_counters[i] = 0;
   }
-  // Added in my implementation - END
+  // Added by Eleni Alevra - END
   edges.items = (edge_t *)realloc(edges.items, edges.N * sizeof(*(edges.items)));
   for (int i = edges.N / 2; i < edges.N; i++) {
     edges.items[i].value = 0;  // setting second half to null
@@ -374,7 +374,7 @@ uint32_t find_elem_pointer_reverse(edge_list_t *list, uint32_t index, edge_t ele
 // everything to the right)
 // also returns the version number of the node we will insert to
 // this is to check if it has changed when we lock to do the insertion
-// This function was modified for my implementation to return the version number and to do
+// This function was modified for Eleni Alevra's implementation to return the version number and to do
 // unlocking when unlock is set
 pair<uint32_t, int> binary_search(edge_list_t *list, edge_t *elem, uint32_t start, uint32_t end,
                                   shared_timed_mutex **node_locks, bool unlock) {
@@ -685,7 +685,7 @@ void PCSR::add_node() {
   adding_sentinels = false;
 }
 
-// This function was re-written for my implementation
+// This function was re-written for Eleni Alevra's implementation
 void PCSR::add_edge(uint32_t src, uint32_t dest, uint32_t value) { add_edge_parallel(src, dest, value, 0); }
 
 // Added by me
@@ -798,12 +798,12 @@ PCSR::~PCSR() {
 }
 
 /**
- * The following functions were all added for my implementation.
+ * The following functions were all added for Eleni Alevra's implementation.
  */
 
 // Used for debugging
 // Returns true if edge {src, dest} exists
-// Added by me
+// Added by Eleni Alevra
 bool PCSR::edge_exists(uint32_t src, uint32_t dest) {
   node_t node = nodes[src];
 
@@ -816,7 +816,7 @@ bool PCSR::edge_exists(uint32_t src, uint32_t dest) {
 
 // Used for debugging
 // Returns true if every neighbourhood is sorted
-// Added by me
+// Added by Eleni Alevra
 bool PCSR::is_sorted() {
   for (int i = 0; i < nodes.size(); i++) {
     int prev = 0;
@@ -834,7 +834,7 @@ bool PCSR::is_sorted() {
 }
 
 // Reads the neighbourhood of vertex src
-// Added by me
+// Added by Eleni Alevra
 void PCSR::read_neighbourhood(int src) {
   int k = 0;
   for (int i = nodes[src].beginning + 1; i < nodes[src].end; i++) {
@@ -844,12 +844,12 @@ void PCSR::read_neighbourhood(int src) {
 
 // Get id of PCSR node (starting from 0)
 // e.g. if every PCSR node has 8 elements, index number 5 is in PCSR node 0, index number 8 is in PCSR node 1 etc.
-// Added by me
+// Added by Eleni Alevra
 uint32_t PCSR::get_node_id(uint32_t node_index) { return node_index / edges.logN; }
 
 // Release acquired locks and increment the version counters to notify any other thread that will acquire them
 // that a change has happened
-// Added by me
+// Added by Eleni Alevra
 void PCSR::release_locks(pair<int, int> acquired_locks) {
   for (int i = acquired_locks.first; i <= acquired_locks.second; i++) {
     edges.node_version_counters[i]++;
@@ -858,7 +858,7 @@ void PCSR::release_locks(pair<int, int> acquired_locks) {
 }
 
 // Release acquired locks without incrementing version counters (we didn't make any changes to these PCSR nodes)
-// Added by me
+// Added by Eleni Alevra
 void PCSR::release_locks_no_inc(pair<int, int> acquired_locks) {
   for (int i = acquired_locks.first; i <= acquired_locks.second; i++) {
     node_locks[i]->unlock();
@@ -876,7 +876,7 @@ void PCSR::release_locks_no_inc(pair<int, int> acquired_locks) {
 // during redistribute we might have to lock some extra PCSR nodes to the left so to avoid deadlocks we release the
 // locks we already have and re-start acquiring from the new leftmost PCSR node
 // tries: how many times we have re-tried locking, to make sure we don't re-try too many times
-// Added by me
+// Added by Eleni Alevra
 pair<pair<int, int>, insertion_info_t *> PCSR::acquire_insert_locks(uint32_t index, edge_t elem, uint32_t src,
                                                                     int ins_node_v, uint32_t left_node_bound,
                                                                     int tries) {
@@ -1072,7 +1072,7 @@ pair<pair<int, int>, insertion_info_t *> PCSR::acquire_insert_locks(uint32_t ind
 // left_node_bound: the leftmost PCSR node to lock from, initially this will be the node where the edge is but
 // during redistribute we might have to lock some extra PCSR nodes to the left so to avoid deadlocks we release the
 // locks we already have and re-start acquiring from the new leftmost PCSR node
-// Added by me
+// Added by Eleni Alevra
 pair<int, int> PCSR::acquire_remove_locks(uint32_t index, edge_t elem, uint32_t src, int ins_node_v,
                                           uint32_t left_node_bound) {
   int node_index = find_leaf(&edges, index);
@@ -1161,7 +1161,7 @@ pair<int, int> PCSR::acquire_remove_locks(uint32_t index, edge_t elem, uint32_t 
 }
 
 // Returns total number of edges in the array
-// Added by me
+// Added by Eleni Alevra
 int PCSR::count_total_edges() {
   int t = 0;
   for (int i = 0; i < nodes.size(); i++) {
@@ -1177,7 +1177,7 @@ int PCSR::count_total_edges() {
 // Used for parallel re-distributing
 // Stores the elements in the range [index, index + len) in array space and returns the redistribution step
 // and the number of elements
-// Added by me
+// Added by Eleni Alevra
 pair<double, int> PCSR::redistr_store(edge_t *space, int index, int len) {
   int j = 0;
   for (int i = index; i < index + len; i++) {
@@ -1189,7 +1189,7 @@ pair<double, int> PCSR::redistr_store(edge_t *space, int index, int len) {
   return make_pair(((double)len) / j, j);
 }
 
-// Added by me
+// Added by Eleni Alevra
 PCSR::PCSR(uint32_t init_n, vector<condition_variable *> *cvs, bool lock_search, int domain) {
   edges.N = 2 << bsr_word(init_n);
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
@@ -1228,7 +1228,7 @@ PCSR::PCSR(uint32_t init_n, vector<condition_variable *> *cvs, bool lock_search,
 }
 
 // Returns total number of edges in range [index, index + len)
-// Added by me
+// Added by Eleni Alevra
 int PCSR::count_elems(int index, int len) {
   int j = 0;
   for (int i = index; i < index + len; i++) {
@@ -1238,7 +1238,7 @@ int PCSR::count_elems(int index, int len) {
 }
 
 // Returns true if the given edge should be inserted in index
-// Added by me
+// Added by Eleni Alevra
 bool PCSR::got_correct_insertion_index(edge_t ins_edge, uint32_t src, uint32_t index, edge_t elem, int node_index,
                                        int node_id, uint32_t &max_node, uint32_t &min_node) {
   // Check that we are in the right neighbourhood
