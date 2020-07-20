@@ -96,32 +96,6 @@ vector<tuple<uint32_t, uint32_t, uint32_t>> PCSR::get_edges() {
   return output;
 }
 
-vector<uint32_t> PCSR::bfs(uint32_t start_node) {
-  uint64_t n = get_n();
-  vector<uint32_t> out(n, UINT32_MAX);
-  queue<uint32_t> next;
-  next.push(start_node);
-  out[start_node] = 0;
-
-  while (!next.empty()) {
-    uint32_t active = next.front();
-    next.pop();
-
-    uint32_t start = nodes[active].beginning;
-    uint32_t end = nodes[active].end;
-
-    // get neighbors
-    // start at +1 for the sentinel
-    for (int j = start + 1; j < end; j++) {
-      if (!is_null(edges.items[j].value) && out[edges.items[j].dest] == UINT32_MAX) {
-        next.push(edges.items[j].dest);
-        out[edges.items[j].dest] = out[active] + 1;
-      }
-    }
-  }
-  return out;
-}
-
 uint64_t PCSR::get_n() { return nodes.size(); }
 
 uint64_t PCSR::get_size() {
