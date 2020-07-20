@@ -19,7 +19,7 @@ using ThreadPool = ThreadPoolPPPCSR;
 using namespace std;
 
 // Reads edge list with comma separator
-vector<pair<int, int>> read_input(string filename, char delimiter = ',') {
+pair<vector<pair<int, int>>, int> read_input(string filename, char delimiter = ',') {
   ifstream f;
   string line;
   f.open(filename);
@@ -27,24 +27,27 @@ vector<pair<int, int>> read_input(string filename, char delimiter = ',') {
     exit(EXIT_FAILURE);
   }
   vector<pair<int, int>> edges;
+  int num_nodes = 0;
   while (getline(f, line)) {
     if (line.find(delimiter) == std::string::npos) {
       return read_input(filename, ' ');
     }
     int src = stoi(line.substr(0, line.find(delimiter)));
+    num_nodes = std::max(num_nodes, src);
     int target = stoi(line.substr(line.find(delimiter) + 1, line.size()));
+    num_nodes = std::max(num_nodes, target);
     edges.emplace_back(src, target);
   }
-  return edges;
+  return make_pair(edges, num_nodes);
 }
 
 // Loads core graph
-ThreadPool *insert_with_thread_pool(const vector<pair<int, int>> &input, int threads, bool lock_search) {
+ThreadPool *insert_with_thread_pool(const vector<pair<int, int>> &input, int threads, bool lock_search, int num_nodes) {
   int NUM_OF_THREADS = threads;
   if (threads < 8) {
     NUM_OF_THREADS = 8;
   }
-  ThreadPool *thread_pool = new ThreadPool(NUM_OF_THREADS, lock_search);
+  ThreadPool *thread_pool = new ThreadPool(NUM_OF_THREADS, lock_search, num_nodes);
   for (int i = 0; i < input.size(); i++) {
     thread_pool->submit_add(i % NUM_OF_THREADS, input[i].first, input[i].second);
   }
@@ -88,6 +91,7 @@ void thread_pool_deletions(ThreadPool *thread_pool, const vector<pair<int, int>>
 int main(int argc, char *argv[]) {
   int threads = 8;
   int size = 1000000;
+  int num_nodes = 0;
   bool lock_search = true;
   bool insert = true;
   vector<pair<int, int>> core_graph;
@@ -106,30 +110,38 @@ int main(int argc, char *argv[]) {
       insert = false;
     } else if (s.rfind("-core_graph=", 0) == 0) {
       string core_graph_filename = s.substr(12, s.length());
-      core_graph = read_input(core_graph_filename);
+      int temp = 0;
+      std::tie(core_graph, temp) = read_input(core_graph_filename);
+      num_nodes = std::max(num_nodes, temp);
     } else if (s.rfind("-update_file=", 0) == 0) {
       string update_filename = s.substr(13, s.length());
       cout << update_filename << endl;
-      updates = read_input(update_filename);
+      int temp = 0;
+      std::tie(updates, temp) = read_input(update_filename);
+      num_nodes = std::max(num_nodes, temp);
     }
   }
   if (core_graph.empty()) {
     cout << "Using default core graph" << endl;
-    core_graph = read_input("shuffled_higgs.txt");
+    int temp = 0;
+    std::tie(core_graph, temp) = read_input("../data/shuffled_higgs.txt");
+    num_nodes = std::max(num_nodes, temp);
   }
   if (updates.empty()) {
     cout << "Using default update graph" << endl;
-    updates = read_input("shuffled_higgs.txt");
+    int temp = 0;
+    std::tie(updates, temp) = read_input("../data/shuffled_higgs.txt");
+    num_nodes = std::max(num_nodes, temp);
   }
   cout << "Core graph size: " << core_graph.size() << endl;
   //   sort(core_graph.begin(), core_graph.end());
   // Load core graph
-  ThreadPool *thread_pool = insert_with_thread_pool(core_graph, threads, lock_search);
+  unique_ptr<ThreadPool> thread_pool(insert_with_thread_pool(core_graph, threads, lock_search, num_nodes));
   // Do updates
   if (insert) {
-    update_existing_graph(updates, thread_pool, threads, size);
+    update_existing_graph(updates, thread_pool.get(), threads, size);
   } else {
-    thread_pool_deletions(thread_pool, updates, threads, size);
+    thread_pool_deletions(thread_pool.get(), updates, threads, size);
   }
 
   // DEBUGGING CODE
@@ -147,7 +159,6 @@ int main(int argc, char *argv[]) {
   //     if (!thread_pool->pcsr->is_sorted()) {
   //       cout << "Not sorted" << endl;
   //     }
-  delete thread_pool;
 
   return 0;
 }

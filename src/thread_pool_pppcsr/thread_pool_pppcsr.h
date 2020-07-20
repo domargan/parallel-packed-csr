@@ -23,7 +23,7 @@ class ThreadPoolPPPCSR {
  public:
   PPPCSR *pcsr;
 
-  explicit ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search);
+  explicit ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes);
   ~ThreadPoolPPPCSR() {}
   /** Public API */
   void submit_add(int thread_id, int src, int dest);     // submit task to thread {thread_id} to insert edge {src, dest}

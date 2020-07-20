@@ -15,9 +15,9 @@ using namespace std;
 /**
  * Initializes a pool of threads. Every thread has its own task queue.
  */
-ThreadPool::ThreadPool(const int NUM_OF_THREADS, bool lock_search) {
+ThreadPool::ThreadPool(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes) {
   tasks.resize(NUM_OF_THREADS);
-  pcsr = new PCSR(456627.0, 456627.0, lock_search);
+  pcsr = new PCSR(init_num_nodes, init_num_nodes, lock_search);
 }
 
 // Function executed by worker threads
