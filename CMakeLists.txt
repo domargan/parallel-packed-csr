@@ -10,8 +10,8 @@ if (NOT CMAKE_BUILD_TYPE)
 endif ()
 
 set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_FLAGS "-std=c++14 -ansi -pedantic-errors -Wall -Wextra -pthread -DUPDATES_NO_TASKS -DRECOMPUTE_ONLY_BREAKAGES_DEL")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DPRINT_TEST")
+set(CMAKE_CXX_FLAGS "-std=c++14 -ansi -pedantic-errors -Wall -Wextra -pthread")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 #set(Boost_INCLUDE_DIR /opt/boost/include)
