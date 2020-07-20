@@ -842,6 +842,16 @@ void PCSR::read_neighbourhood(int src) {
   }
 }
 
+vector<int> PCSR::get_neighbourhood(int src) const {
+  std::vector<int> neighbours;
+  for (int i = nodes[src].beginning + 1; i < nodes[src].end; i++) {
+    if (edges.items[i].value != 0) {
+      neighbours.push_back(edges.items[i].dest);
+    }
+  }
+  return neighbours;
+}
+
 // Get id of PCSR node (starting from 0)
 // e.g. if every PCSR node has 8 elements, index number 5 is in PCSR node 0, index number 8 is in PCSR node 1 etc.
 // Added by Eleni Alevra
@@ -1374,4 +1384,23 @@ void PCSR::add_edge_parallel(uint32_t src, uint32_t dest, uint32_t value, int re
       free(acquired_locks.second);
     }
   }
+}
+
+void PCSR::insert_nodes_and_edges_front(std::vector<node_t> new_nodes, std::vector<edge_t> new_edges) {
+
+}
+
+void PCSR::insert_nodes_and_edges_back(std::vector<node_t> new_nodes, std::vector<edge_t> new_edges) {
+
+}
+
+std::pair<std::vector<node_t>, std::vector<edge_t>> PCSR::remove_nodes_and_edges_front(int num_nodes) {
+  std::vector<node_t> exported_nodes;
+  std::vector<edge_t> exported_edges;
+  return make_pair(exported_nodes, exported_edges);
+}
+std::pair<std::vector<node_t>, std::vector<edge_t>> PCSR::remove_nodes_and_edges_back(int num_nodes) {
+  std::vector<node_t> exported_nodes;
+  std::vector<edge_t> exported_edges;
+  return make_pair(exported_nodes, exported_edges);
 }

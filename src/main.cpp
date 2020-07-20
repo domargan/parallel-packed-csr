@@ -1,3 +1,5 @@
+#include <bfs.h>
+
 #include <chrono>
 #include <cmath>
 #include <ctime>
@@ -143,6 +145,13 @@ int main(int argc, char *argv[]) {
   } else {
     thread_pool_deletions(thread_pool.get(), updates, threads, size);
   }
+
+  // run BFS
+  auto start = chrono::steady_clock::now();
+  auto res = bfs(*thread_pool->pcsr, 0);
+  auto finish = chrono::steady_clock::now();
+  cout << "BFS result size: " << res.size() << std::endl;
+  cout << "BFS time size: " << chrono::duration_cast<chrono::milliseconds>(finish - start).count() << std::endl;
 
   // DEBUGGING CODE
   // Check that all edges are there and in sorted order
