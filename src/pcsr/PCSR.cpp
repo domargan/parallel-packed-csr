@@ -755,21 +755,25 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
   }
 }
 
-PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain) {
+PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain) : domain(domain) {
   edges.N = 2 << bsr_word(init_n);
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
   edges.global_lock = make_shared<shared_timed_mutex>();
-  edges.node_version_counters = (atomic<int> *)malloc((edges.N / edges.logN) * sizeof(atomic_int));
-  node_locks = (shared_timed_mutex **)malloc((edges.N / edges.logN) * sizeof(shared_timed_mutex *));
+
   lock_bsearch = lock_search;
   if (numa_available()) {
+    edges.node_version_counters = (atomic<int> *)numa_alloc_onnode((edges.N / edges.logN) * sizeof(atomic_int), domain);
+    node_locks =
+        (shared_timed_mutex **)numa_alloc_onnode((edges.N / edges.logN) * sizeof(shared_timed_mutex *), domain);
     edges.items = (edge_t *)numa_alloc_onnode(edges.N * sizeof(*(edges.items)), domain);
     if (edges.items = NULL) {
       cerr << "Memory allocation on node " << domain << " failed\n";
       exit(EXIT_FAILURE);
     }
   } else {
+    edges.node_version_counters = (atomic<int> *)malloc((edges.N / edges.logN) * sizeof(atomic_int));
+    node_locks = (shared_timed_mutex **)malloc((edges.N / edges.logN) * sizeof(shared_timed_mutex *));
     edges.items = (edge_t *)malloc(edges.N * sizeof(*(edges.items)));
   }
   for (int i = 0; i < edges.N; i++) {
@@ -1200,25 +1204,29 @@ pair<double, int> PCSR::redistr_store(edge_t *space, int index, int len) {
 }
 
 // Added by Eleni Alevra
-PCSR::PCSR(uint32_t init_n, vector<condition_variable *> *cvs, bool lock_search, int domain) {
+PCSR::PCSR(uint32_t init_n, vector<condition_variable *> *cvs, bool lock_search, int domain) : domain(domain) {
   edges.N = 2 << bsr_word(init_n);
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
   edges.global_lock = make_shared<shared_timed_mutex>();
-  edges.node_version_counters = (atomic<int> *)malloc((edges.N / edges.logN) * sizeof(atomic_int));
-  node_locks = (shared_timed_mutex **)malloc((edges.N / edges.logN) * sizeof(shared_timed_mutex *));
+
   this->redistr_mutex = new mutex;
   this->redistr_cv = new condition_variable;
   this->redistr_cvs = cvs;
   lock_bsearch = lock_search;
 
   if (numa_available()) {
+    edges.node_version_counters = (atomic<int> *)numa_alloc_onnode((edges.N / edges.logN) * sizeof(atomic_int), domain);
+    node_locks =
+        (shared_timed_mutex **)numa_alloc_onnode((edges.N / edges.logN) * sizeof(shared_timed_mutex *), domain);
     edges.items = (edge_t *)numa_alloc_onnode(edges.N * sizeof(*(edges.items)), domain);
     if (edges.items = NULL) {
       cerr << "Memory allocation on node " << domain << " failed\n";
       exit(EXIT_FAILURE);
     }
   } else {
+    edges.node_version_counters = (atomic<int> *)malloc((edges.N / edges.logN) * sizeof(atomic_int));
+    node_locks = (shared_timed_mutex **)malloc((edges.N / edges.logN) * sizeof(shared_timed_mutex *));
     edges.items = (edge_t *)malloc(edges.N * sizeof(*(edges.items)));
   }
   for (int i = 0; i < edges.N; i++) {
@@ -1229,9 +1237,17 @@ PCSR::PCSR(uint32_t init_n, vector<condition_variable *> *cvs, bool lock_search,
     edges.items[i].value = 0;
     edges.items[i].dest = 0;
   }
+
   for (int i = 0; i < edges.N / edges.logN; i++) {
-    node_locks[i] = new shared_timed_mutex();
+    if (numa_available()) {
+      node_locks[i] = static_cast<shared_timed_mutex *>(numa_alloc_onnode(sizeof(shared_timed_mutex), domain));
+      shared_timed_mutex mtx;
+      memcpy(&node_locks[i], &mtx, sizeof(mtx));
+    } else {
+      node_locks[i] = new shared_timed_mutex();
+    }
   }
+
   for (int i = 0; i < init_n; i++) {
     add_node();
   }
@@ -1386,13 +1402,9 @@ void PCSR::add_edge_parallel(uint32_t src, uint32_t dest, uint32_t value, int re
   }
 }
 
-void PCSR::insert_nodes_and_edges_front(std::vector<node_t> new_nodes, std::vector<edge_t> new_edges) {
+void PCSR::insert_nodes_and_edges_front(std::vector<node_t> new_nodes, std::vector<edge_t> new_edges) {}
 
-}
-
-void PCSR::insert_nodes_and_edges_back(std::vector<node_t> new_nodes, std::vector<edge_t> new_edges) {
-
-}
+void PCSR::insert_nodes_and_edges_back(std::vector<node_t> new_nodes, std::vector<edge_t> new_edges) {}
 
 std::pair<std::vector<node_t>, std::vector<edge_t>> PCSR::remove_nodes_and_edges_front(int num_nodes) {
   std::vector<node_t> exported_nodes;

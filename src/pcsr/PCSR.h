@@ -188,6 +188,8 @@ class PCSR {
    * Deletes all edges. The data structure is invalid afterwards
    */
   void clear();
+
+  int domain;
 };
 
 #endif  // PCSR2_PCSR_H

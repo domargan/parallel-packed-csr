@@ -53,7 +53,8 @@ void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
   static int par2 = 0;
   auto par = pcsr->get_partiton(src);
   if (par == 0) {
-    tasks[par1 % (int)std::ceil(tasks.size() / (numa_max_node() + 1))].push(task{true, false, src, target});
+    tasks[par1 % (int)std::ceil(tasks.size() / (numa_max_node() + 1))]
+    .push(task{true, false, src, target});
     par1++;
   } else {
     tasks[(std::ceil(tasks.size() / (numa_max_node() + 1))) +
@@ -65,7 +66,19 @@ void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
 
 // Submit a delete edge task for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_delete(int thread_id, int src, int target) {
-  tasks[thread_id].push(task{false, false, src, target});
+    static int par1 = 0;
+    static int par2 = 0;
+    auto par = pcsr->get_partiton(src);
+    if (par == 0) {
+        tasks[par1 % (int)std::ceil(tasks.size() / (numa_max_node() + 1))]
+        .push(task{false, false, src, target});;
+        par1++;
+    } else {
+        tasks[(std::ceil(tasks.size() / (numa_max_node() + 1))) +
+              par2 % (int)std::ceil(tasks.size() / (numa_max_node() + 1))]
+                .push(task{false, false, src, target});;
+        par2++;
+    }
 }
 
 // Submit a read neighbourhood task for vertex src to thread with number thread_id
