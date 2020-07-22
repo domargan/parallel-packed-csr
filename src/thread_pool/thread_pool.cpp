@@ -1,6 +1,8 @@
-//
-// Created by Eleni Alevra on 29/03/2020.
-//
+/**
+ * Created by Eleni Alevra on 29/03/2020.
+ * modified by Christian Menges
+ */
+
 
 #include "thread_pool.h"
 

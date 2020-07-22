@@ -1,6 +1,7 @@
-//
-// Created by menges on 7/7/20.
-//
+/**
+ * @file PPPCSR.h
+ * @author Christian Menges
+ */
 
 #include "../pcsr/PCSR.h"
 

@@ -1,3 +1,8 @@
+/**
+ * Created by Eleni Alevra
+ * modified by Christian Menges
+ */
+
 #include <bfs.h>
 
 #include <chrono>

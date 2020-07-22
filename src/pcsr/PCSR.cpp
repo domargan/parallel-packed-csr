@@ -1,6 +1,7 @@
 /**
  * This file was cloned from https://github.com/wheatman/Packed-Compressed-Sparse-Row/. The
  * parts of the code that Eleni Alevra has added for the parallel version are marked by comments.
+ * modified by Christian Menges
  */
 #include "PCSR.h"
 

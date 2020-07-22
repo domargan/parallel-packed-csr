@@ -1,6 +1,7 @@
-//
-// Created by menges on 7/7/20.
-//
+/**
+ * @file PPPCSR.cpp
+ * @author Christian Menges
+ */
 
 #include "PPPCSR.h"
 

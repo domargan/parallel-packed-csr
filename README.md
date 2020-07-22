@@ -36,8 +36,11 @@ Run with `./pcsr2`
 
 # Authors
 * Eleni Alevra
-* Supervisor: Peter Pietzuch
-* Postgraduate student advisor: Dom Margan
+  * Supervisor: Peter Pietzuch
+  * Postgraduate student advisor: Dom Margan
+* Christian Menges
+  * Postgraduate student advisor: Dom Margan
+
 
 # Citation
 ```

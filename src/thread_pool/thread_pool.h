@@ -1,6 +1,7 @@
-//
-// Created by Eleni Alevra on 02/06/2020.
-//
+/**
+ * Created by Eleni Alevra on 02/06/2020.
+ * modified by Christian Menges
+ */
 
 #include <queue>
 #include <thread>

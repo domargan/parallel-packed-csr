@@ -1,6 +1,7 @@
-//
-// Created by Christian Menges.
-//
+/**
+ * @file thread_pool_pppcsr.cpp
+ * @author Christian Menges
+ */
 
 #include "thread_pool_pppcsr.h"
 
