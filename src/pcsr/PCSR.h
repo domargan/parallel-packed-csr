@@ -192,6 +192,7 @@ class PCSR {
   void clear();
 
   int domain;
+  const bool is_numa_available;
 };
 
 #endif  // PCSR2_PCSR_H

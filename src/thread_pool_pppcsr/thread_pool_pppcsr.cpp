@@ -30,7 +30,7 @@ ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, u
 // Finishes when finished is set to true and there are no outstanding tasks
 void ThreadPoolPPPCSR::execute(int thread_id) {
   cout << "Thread " << thread_id << " has " << tasks[thread_id].size() << " tasks" << endl;
-  if (numa_available()) {
+  if (numa_available() >= 0) {
     numa_run_on_node(thread_id / (std::ceil(tasks.size() / (numa_max_node() + 1))));
   }
   while (!finished || !tasks[thread_id].empty()) {
