@@ -52,9 +52,7 @@ pair<vector<pair<int, int>>, int> read_input(string filename, char delimiter = '
 ThreadPool *insert_with_thread_pool(const vector<pair<int, int>> &input, int threads, bool lock_search, int num_nodes,
                                     int partitions_per_domain) {
   int NUM_OF_THREADS = threads;
-  if (threads < 8) {
-    NUM_OF_THREADS = 8;
-  }
+
   ThreadPool *thread_pool = new ThreadPool(NUM_OF_THREADS, lock_search, num_nodes, partitions_per_domain);
   for (int i = 0; i < input.size(); i++) {
     thread_pool->submit_add(i % NUM_OF_THREADS, input[i].first, input[i].second);
