@@ -33,9 +33,9 @@ ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, u
 // Does insertions, deletions and reads on the PCSR
 // Finishes when finished is set to true and there are no outstanding tasks
 void ThreadPoolPPPCSR::execute(int thread_id) {
-  cout << "Thread " << thread_id << " has " << tasks[thread_id].size() << " tasks, runs on domain " << (thread_id ) / (tasks.size() / available_nodes) << endl;
+  cout << "Thread " << thread_id << " has " << tasks[thread_id].size() << " tasks, runs on domain " << (thread_id ) / std::max(1ul, tasks.size() / available_nodes) << endl;
   if (numa_available() >= 0) {
-    numa_run_on_node((thread_id ) / (tasks.size() / available_nodes));
+    numa_run_on_node((thread_id ) / std::max(1ul, tasks.size() / available_nodes));
   }
   while (!finished || !tasks[thread_id].empty()) {
     if (!tasks[thread_id].empty()) {
@@ -55,7 +55,7 @@ void ThreadPoolPPPCSR::execute(int thread_id) {
 // Submit an update for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
   auto par = pcsr->get_partiton(src);
-  auto index = (indeces[par]++)%(tasks.size() / available_nodes);
+  auto index = (indeces[par]++)%(std::max(1ul,tasks.size() / available_nodes));
     tasks[(par / partitions_per_domain) * (tasks.size() / available_nodes) + index]
     .push(task{true, false, src, target});
 }
@@ -63,7 +63,7 @@ void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
 // Submit a delete edge task for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_delete(int thread_id, int src, int target) {
     auto par = pcsr->get_partiton(src);
-    auto index = (indeces[par]++)%(tasks.size() / available_nodes);
+    auto index = (indeces[par]++)%(std::max(1ul,tasks.size() / available_nodes));
     tasks[(par / partitions_per_domain) * (tasks.size() / available_nodes) + index]
             .push(task{false, false, src, target});
 }
@@ -71,7 +71,7 @@ void ThreadPoolPPPCSR::submit_delete(int thread_id, int src, int target) {
 // Submit a read neighbourhood task for vertex src to thread with number thread_id
 void ThreadPoolPPPCSR::submit_read(int thread_id, int src) {
     auto par = pcsr->get_partiton(src);
-    auto index = (indeces[par]++) % (tasks.size() / available_nodes);
+    auto index = (indeces[par]++) % (std::max(1ul,tasks.size() / available_nodes));
     tasks[(par / partitions_per_domain) * (tasks.size() / available_nodes) + index]
             .push(task{false, true, src, src});
 }
