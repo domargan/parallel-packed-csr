@@ -1,6 +1,7 @@
-//
-// Created by Eleni Alevra on 29/03/2020.
-//
+/**
+ * Created by Eleni Alevra on 29/03/2020.
+ * modified by Christian Menges
+ */
 
 #include "thread_pool.h"
 
@@ -15,9 +16,9 @@ using namespace std;
 /**
  * Initializes a pool of threads. Every thread has its own task queue.
  */
-ThreadPool::ThreadPool(const int NUM_OF_THREADS, bool lock_search) {
+ThreadPool::ThreadPool(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes, int partitions_per_domain) {
   tasks.resize(NUM_OF_THREADS);
-  pcsr = new PCSR(456627.0, 456627.0, lock_search);
+  pcsr = new PCSR(init_num_nodes, init_num_nodes, lock_search);
 }
 
 // Function executed by worker threads

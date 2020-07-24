@@ -1,6 +1,8 @@
-//
-// Created by Eleni Alevra on 02/06/2020.
-//
+/*
+ * Created by Eleni Alevra on 02/06/2020.
+ * modified by Christian Menges
+ */
+
 #include <atomic>
 #include <shared_mutex>
 #include <vector>
@@ -70,6 +72,53 @@ class PCSR {
   void add_edge(uint32_t src, uint32_t dest, uint32_t value);
   void remove_edge(uint32_t src, uint32_t dest);
   void read_neighbourhood(int src);
+  vector<int> get_neighbourhood(int src) const;
+
+  /**
+   * Returns the node count
+   * @return node count
+   */
+  uint64_t get_n();
+
+  /**
+   * inserts nodes and edges at the front ot the data structure
+   * @param nodes
+   * @param new_items
+   */
+  void insert_nodes_and_edges_front(std::vector<node_t> nodes, std::vector<edge_t> new_edges);
+
+  /**
+   * inserts nodes and edges at the end ot the data structure
+   * @param nodes
+   * @param new_items
+   */
+  void insert_nodes_and_edges_back(std::vector<node_t> nodes, std::vector<edge_t> new_edges);
+
+  /**
+   * removes nodes and edges at the front ot the data structure
+   * @param num_nodes #nodes to remove
+   * @return removed nodes and edges
+   */
+  std::pair<std::vector<node_t>, std::vector<edge_t>> remove_nodes_and_edges_front(int num_nodes);
+
+  /**
+   * removes nodes and edges at the end ot the data structure
+   * @param num_nodes
+   * @return removed nodes and edges
+   */
+  std::pair<std::vector<node_t>, std::vector<edge_t>> remove_nodes_and_edges_back(int num_nodes);
+
+  /**
+   * Returns a ref. to the node with the given id
+   * @return ref. to node
+   */
+  node_t &getNode(int id) { return nodes[id]; }
+
+  /**
+   * Returns a const ref. to the node with the given id
+   * @return const ref. to node
+   */
+  const node_t &getNode(int id) const { return nodes[id]; }
 
  private:
   // data members
@@ -96,7 +145,6 @@ class PCSR {
   uint32_t find_value(uint32_t src, uint32_t dest);
   vector<uint32_t> sparse_matrix_vector_multiplication(std::vector<uint32_t> const &v);
   vector<float> pagerank(std::vector<float> const &node_values);
-  vector<uint32_t> bfs(uint32_t start_node);
   void double_list();
   void half_list();
   int slide_right(int index, uint32_t src);
@@ -109,13 +157,42 @@ class PCSR {
   void print_graph(int);
   pair<double, int> redistr_store(edge_t *space, int index, int len);
   void fix_sentinel(int32_t node_index, int in);
+  /**
+   * Returns total number of edges in range [index, index + len)
+   * @param index start index
+   * @param len range length
+   * @return #edges in range
+   */
   int count_elems(int index, int len);
+  /**
+   * Returns true if every neighbourhood is sorted
+   * @return sorted
+   */
   bool is_sorted();
+  /**
+   * Returns the total number of stored edges
+   * @return #edges
+   */
   int count_total_edges();
+  /**
+   * Return the memory footprint of this data structure in byte
+   * @return memory footprint in byte
+   */
   uint64_t get_size();
-  uint64_t get_n();
+
+  /**
+   * Returns all stored edges
+   * @return [{node_id, dest_id, edge_value}]
+   */
   vector<tuple<uint32_t, uint32_t, uint32_t>> get_edges();
+
+  /**
+   * Deletes all edges. The data structure is invalid afterwards
+   */
   void clear();
+
+  int domain;
+  const bool is_numa_available;
 };
 
 #endif  // PCSR2_PCSR_H

@@ -1,6 +1,7 @@
-//
-// Created by menges on 7/7/20.
-//
+/**
+ * @file PPPCSR.h
+ * @author Christian Menges
+ */
 
 #include "../pcsr/PCSR.h"
 
@@ -12,7 +13,7 @@ class PPPCSR {
   // data members
   edge_list_t edges;
 
-  PPPCSR(uint32_t init_n, uint32_t, bool lock_search);
+  PPPCSR(uint32_t init_n, uint32_t, bool lock_search, int partitionsPerDomain);
   //    PPPCSR(uint32_t init_n, vector<condition_variable*> *cvs, bool search_lock);
   //    ~PPPCSR();
   /** Public API */
@@ -22,7 +23,15 @@ class PPPCSR {
   void remove_edge(uint32_t src, uint32_t dest);
   void read_neighbourhood(int src);
 
-  std::size_t get_partiton(size_t vertex_id);
+  std::size_t get_partiton(size_t vertex_id) const;
+
+  vector<int> get_neighbourhood(int src) const;
+
+  /**
+   * Returns the node count
+   * @return node count
+   */
+  uint64_t get_n();
 
  private:
   /// different partitions
@@ -30,6 +39,8 @@ class PPPCSR {
 
   /// start index vertices in the partitions
   std::vector<size_t> distribution;
+
+  int partitionsPerDomain;
 };
 
 #endif  // PPPCSR_H

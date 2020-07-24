@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Written by Christian Menges, 10. July 2020
+
 outFile=strong_scaling_results.csv
 
 repetitions=3
@@ -20,12 +22,12 @@ for i in {0..6}; do
   t=$((2 ** i))
   line=""
   for ((r = 0; r < repetitions; r++)); do
-    output=$(./pcsr2 -threads=$t -update_file=../data/update_files/insertions.txt | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
+    output=$(./parallel-packed-csr -threads=$t -update_file=../data/update_files/insertions.txt | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
     line="${line},${output}"
   done
 
   for ((r = 0; r < repetitions; r++)); do
-    output=$(./pcsr2 -delete -threads=$t -update_file=../data/update_files/deletions.txt | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
+    output=$(./parallel-packed-csr -delete -threads=$t -update_file=../data/update_files/deletions.txt | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
     line="${line},${output}"
   done
 

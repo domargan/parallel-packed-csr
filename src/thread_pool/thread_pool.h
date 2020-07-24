@@ -1,6 +1,7 @@
-//
-// Created by Eleni Alevra on 02/06/2020.
-//
+/**
+ * Created by Eleni Alevra on 02/06/2020.
+ * modified by Christian Menges
+ */
 
 #include <queue>
 #include <thread>
@@ -23,8 +24,9 @@ class ThreadPool {
  public:
   PCSR *pcsr;
 
-  explicit ThreadPool(const int NUM_OF_THREADS, bool lock_search);
-  ~ThreadPool() {}
+  explicit ThreadPool(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes, int partitions_per_domain);
+  ~ThreadPool() = default;
+
   /** Public API */
   void submit_add(int thread_id, int src, int dest);     // submit task to thread {thread_id} to insert edge {src, dest}
   void submit_delete(int thread_id, int src, int dest);  // submit task to thread {thread_id} to delete edge {src, dest}

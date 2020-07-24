@@ -1,6 +1,7 @@
-//
-// Created by menges on 7/7/20.
-//
+/**
+ * @file PPPCSR.cpp
+ * @author Christian Menges
+ */
 
 #include "PPPCSR.h"
 
@@ -9,30 +10,40 @@
 #include <cmath>
 #include <iostream>
 
-PPPCSR::PPPCSR(uint32_t init_n, uint32_t src_n, bool lock_search) {
-  std::size_t numPartitions = 1;
+PPPCSR::PPPCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int partitionsPerDomain)
+    : partitionsPerDomain(partitionsPerDomain) {
+  std::size_t numDomains = 1;
   if (numa_available() < 0) {
     std::cout << "NUMA not available. Using single partition\n";
   } else {
-    numPartitions = numa_max_node() + 2;
+    numDomains = numa_max_node() + 1;
   }
-  partitions.reserve(numPartitions);
-  distribution.reserve(numPartitions);
+
+  partitions.reserve(numDomains * partitionsPerDomain);
+  distribution.reserve(numDomains * partitionsPerDomain);
   distribution.push_back(0);
-  size_t partitionSize = std::ceil(init_n / numPartitions);
-  for (std::size_t i = 0; i < numPartitions; i++) {
-    if (i == numPartitions - 1) {
-      partitionSize = init_n - i * partitionSize;
-    }
-    partitions.emplace_back(partitionSize, partitionSize, lock_search, 0);
-    if (i > 0) {
-      distribution.push_back(distribution.back() + partitionSize);
+  size_t partitionSize = std::ceil(init_n / (numDomains * partitionsPerDomain));
+
+  for (std::size_t i = 0; i < numDomains; i++) {
+    for (std::size_t p = 0; p < partitionsPerDomain; p++) {
+      if (i > 0 || p > 0) {
+        distribution.push_back(distribution.back() + partitionSize);
+      }
+      if (i == numDomains - 1 && p == partitionsPerDomain - 1) {
+        partitionSize = init_n - ((i * partitionsPerDomain) + p) * partitionSize;
+      }
+      partitions.emplace_back(partitionSize, partitionSize, lock_search, i);
     }
   }
+  cout << "Number of partitions: " << partitions.size() << std::endl;
 }
 
 bool PPPCSR::edge_exists(uint32_t src, uint32_t dest) {
   return partitions[get_partiton(src)].edge_exists(src - distribution[get_partiton(src)], dest);
+}
+
+vector<int> PPPCSR::get_neighbourhood(int src) const {
+  return partitions[get_partiton(src)].get_neighbourhood(src - distribution[get_partiton(src)]);
 }
 
 void PPPCSR::add_node() { partitions.back().add_node(); }
@@ -49,7 +60,7 @@ void PPPCSR::read_neighbourhood(int src) {
   partitions[get_partiton(src)].read_neighbourhood(src - distribution[get_partiton(src)]);
 }
 
-std::size_t PPPCSR::get_partiton(size_t vertex_id) {
+std::size_t PPPCSR::get_partiton(size_t vertex_id) const {
   for (std::size_t i = 1; i < distribution.size(); i++) {
     if (distribution[i] > vertex_id) {
       return i - 1;
@@ -57,4 +68,12 @@ std::size_t PPPCSR::get_partiton(size_t vertex_id) {
   }
   // Return last partition
   return distribution.size() - 1;
+}
+
+uint64_t PPPCSR::get_n() {
+  uint64_t n = 0;
+  for (int i = 0; i < partitions.size(); i++) {
+    n += partitions[i].get_n();
+  }
+  return n;
 }
