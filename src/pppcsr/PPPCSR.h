@@ -13,7 +13,7 @@ class PPPCSR {
   // data members
   edge_list_t edges;
 
-  PPPCSR(uint32_t init_n, uint32_t, bool lock_search);
+  PPPCSR(uint32_t init_n, uint32_t, bool lock_search, int partitionsPerDomain);
   //    PPPCSR(uint32_t init_n, vector<condition_variable*> *cvs, bool search_lock);
   //    ~PPPCSR();
   /** Public API */
@@ -39,6 +39,8 @@ class PPPCSR {
 
   /// start index vertices in the partitions
   std::vector<size_t> distribution;
+
+  int partitionsPerDomain;
 };
 
 #endif  // PPPCSR_H

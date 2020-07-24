@@ -3,7 +3,6 @@
  * modified by Christian Menges
  */
 
-
 #include "thread_pool.h"
 
 #include <ctime>
@@ -17,7 +16,7 @@ using namespace std;
 /**
  * Initializes a pool of threads. Every thread has its own task queue.
  */
-ThreadPool::ThreadPool(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes) {
+ThreadPool::ThreadPool(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes, int partitions_per_domain) {
   tasks.resize(NUM_OF_THREADS);
   pcsr = new PCSR(init_num_nodes, init_num_nodes, lock_search);
 }

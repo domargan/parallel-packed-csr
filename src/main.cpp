@@ -49,12 +49,13 @@ pair<vector<pair<int, int>>, int> read_input(string filename, char delimiter = '
 }
 
 // Loads core graph
-ThreadPool *insert_with_thread_pool(const vector<pair<int, int>> &input, int threads, bool lock_search, int num_nodes) {
+ThreadPool *insert_with_thread_pool(const vector<pair<int, int>> &input, int threads, bool lock_search, int num_nodes,
+                                    int partitions_per_domain) {
   int NUM_OF_THREADS = threads;
   if (threads < 8) {
     NUM_OF_THREADS = 8;
   }
-  ThreadPool *thread_pool = new ThreadPool(NUM_OF_THREADS, lock_search, num_nodes);
+  ThreadPool *thread_pool = new ThreadPool(NUM_OF_THREADS, lock_search, num_nodes, partitions_per_domain);
   for (int i = 0; i < input.size(); i++) {
     thread_pool->submit_add(i % NUM_OF_THREADS, input[i].first, input[i].second);
   }
@@ -101,27 +102,30 @@ int main(int argc, char *argv[]) {
   int num_nodes = 0;
   bool lock_search = true;
   bool insert = true;
+  int partitions_per_domain = 1;
   vector<pair<int, int>> core_graph;
   vector<pair<int, int>> updates;
   for (int i = 1; i < argc; i++) {
     string s = string(argv[i]);
     if (s.rfind("-threads=", 0) == 0) {
-      threads = stoi(s.substr(9, s.length()));
+      threads = stoi(s.substr(string("-threads=").length(), s.length()));
     } else if (s.rfind("-size=", 0) == 0) {
-      size = stoi(s.substr(6, s.length()));
+      size = stoi(s.substr(string("-size=").length(), s.length()));
     } else if (s.rfind("-lock_free", 0) == 0) {
       lock_search = false;
     } else if (s.rfind("-insert", 0) == 0) {
       insert = true;
     } else if (s.rfind("-delete", 0) == 0) {
       insert = false;
+    } else if (s.rfind("-partitions_per_domain=", 0) == 0) {
+      partitions_per_domain = stoi(s.substr(string("-partitions_per_domain=").length(), s.length()));
     } else if (s.rfind("-core_graph=", 0) == 0) {
-      string core_graph_filename = s.substr(12, s.length());
+      string core_graph_filename = s.substr(string("-core_graph=").length(), s.length());
       int temp = 0;
       std::tie(core_graph, temp) = read_input(core_graph_filename);
       num_nodes = std::max(num_nodes, temp);
     } else if (s.rfind("-update_file=", 0) == 0) {
-      string update_filename = s.substr(13, s.length());
+      string update_filename = s.substr(string("-update_file=").length(), s.length());
       cout << update_filename << endl;
       int temp = 0;
       std::tie(updates, temp) = read_input(update_filename);
@@ -143,7 +147,8 @@ int main(int argc, char *argv[]) {
   cout << "Core graph size: " << core_graph.size() << endl;
   //   sort(core_graph.begin(), core_graph.end());
   // Load core graph
-  unique_ptr<ThreadPool> thread_pool(insert_with_thread_pool(core_graph, threads, lock_search, num_nodes));
+  unique_ptr<ThreadPool> thread_pool(
+      insert_with_thread_pool(core_graph, threads, lock_search, num_nodes, partitions_per_domain));
   // Do updates
   if (insert) {
     update_existing_graph(updates, thread_pool.get(), threads, size);
@@ -156,7 +161,7 @@ int main(int argc, char *argv[]) {
   auto res = bfs(*thread_pool->pcsr, 0);
   auto finish = chrono::steady_clock::now();
   cout << "BFS result size: " << res.size() << std::endl;
-  cout << "BFS time size: " << chrono::duration_cast<chrono::milliseconds>(finish - start).count() << std::endl;
+  cout << "BFS time: " << chrono::duration_cast<chrono::milliseconds>(finish - start).count() << std::endl;
 
   // DEBUGGING CODE
   // Check that all edges are there and in sorted order
