@@ -40,9 +40,8 @@ Run with `./cmake-build-BUILD_TYPE/parallel-packed-csr`
 * Christian Menges 
 * Dom Margan 
 
-```
 # References
-<a id="1">[1]</a>
+[1]
 Wheatman, B., & Xu, H. (2018).
 Packed Compressed Sparse Row: A Dynamic Graph
 Representation. 
@@ -50,5 +49,5 @@ Representation.
 
 <a id="2">[2]</a>
 Alevra, E., & Pietzuch, P. (2020).
-A parallel data structure for streaming graphs. 
+A Parallel Data Structure for Streaming Graphs. 
 Master’s thesis, Imperial College London, 2020.
