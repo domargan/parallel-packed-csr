@@ -14,12 +14,6 @@ set(CMAKE_CXX_FLAGS "-std=c++14 -ansi -pedantic-errors -Wall -Wextra -pthread")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
-#set(Boost_INCLUDE_DIR /opt/boost/include)
-#set(Boost_LIBRARY_DIR /opt/boost/lib)
-#find_package(Boost COMPONENTS system filesystem iostreams REQUIRED)
-#include_directories(${Boost_INCLUDE_DIR})
-#link_directories(${Boost_LIBRARY_DIR})
-
 set(PROJECT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
 
 file(GLOB_RECURSE parallel-packed-csr_SOURCES "${PROJECT_SOURCE_DIR}/*.cpp")
@@ -34,10 +28,23 @@ list(REMOVE_DUPLICATES parallel-packed-csr_INCLUDE_DIRS)
 
 add_executable(parallel-packed-csr ${parallel-packed-csr_SOURCES})
 target_include_directories(parallel-packed-csr PRIVATE ${parallel-packed-csr_INCLUDE_DIRS})
+
+#set(Boost_INCLUDE_DIR /opt/boost/include)
+#set(Boost_LIBRARY_DIR /opt/boost/lib)
+#find_package(Boost COMPONENTS system filesystem iostreams REQUIRED)
+#include_directories(${Boost_INCLUDE_DIR})
+#link_directories(${Boost_LIBRARY_DIR})
 #target_link_libraries(parallel-packed-csr ${Boost_LIBRARIES})
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 target_link_libraries(parallel-packed-csr PRIVATE Threads::Threads numa)
 
-#list(REMOVE_ITEM parallel-packed-csr_SOURCES ${PROJECT_SOURCE_DIR}/main.cpp)
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS})
+enable_testing()
+list(REMOVE_ITEM parallel-packed-csr_SOURCES ${PROJECT_SOURCE_DIR}/main.cpp)
+add_executable(tests ${parallel-packed-csr_SOURCES} ${CMAKE_SOURCE_DIR}/test/tests_main.cpp)
+target_include_directories(tests PRIVATE ${parallel-packed-csr_INCLUDE_DIRS})
+target_link_libraries(tests ${GTEST_LIBRARIES} pthread numa)
+
