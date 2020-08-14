@@ -4,26 +4,17 @@ Accepts a core graph, which it loads first and an update file, which it uses to 
 Performs edge insertions and deletions in parallel and uses NUMA-aware placement of data and worker threads.
 
 # Prerequisites
-* CMAKE 3.5 or newer required.
+* CMAKE 3.8 or newer required.
 
 # Build
-The commands to build are the following:
-
+Create a build directory and run cmake & make there:
 ```
-$ cd src
-$ cmake .
+$ mkdir build && cd build
+$ cmake ..
 $ make
 ```
-
-# Data files
-The sample/test data files included in the `data/` directory are the following:
-
-* `shuffled_higgs.txt`: core graph, a shuffled version of the [Higgs Twitter dataset](https://snap.stanford.edu/data/higgs-twitter.html).
-* `update_files/insertions.txt`: a list of 1 million edges, randomly sampled from a power law distribution, to be inserted.
-* `update_files/deletions.txt`: a list of 1 million edges in the core graph to be deleted.
-
 # Running
-Run with `./cmake-build-BUILD_TYPE/parallel-packed-csr`
+Run the `parallel-packed-csr` binary from your build directory.
 
 ## Command line options
 * `-threads=`: specifies number of threads to use for updates, default=8
@@ -34,6 +25,13 @@ Run with `./cmake-build-BUILD_TYPE/parallel-packed-csr`
 * `-delete`: deletes the edges from the update file from the core graph
 * `-core_graph=`: specifies the filename of the core graph, default=shuffled_higgs.txt
 * `-update_file=`: specifies the filename of the update file, default=insertions.txt
+
+# Data files
+The sample/test data files included in the `data/` directory are the following:
+
+* `shuffled_higgs.txt`: core graph, a shuffled version of the [Higgs Twitter dataset](https://snap.stanford.edu/data/higgs-twitter.html).
+* `update_files/insertions.txt`: a list of 1 million edges, randomly sampled from a power law distribution, to be inserted.
+* `update_files/deletions.txt`: a list of 1 million edges in the core graph to be deleted.
 
 # Authors
 * Eleni Alevra
