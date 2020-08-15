@@ -3,8 +3,6 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 project(parallel-packed-csr VERSION 0.1 LANGUAGES CXX)
 
-include(${CMAKE_SOURCE_DIR}/cmake/modules/clang-format.cmake)
-
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif ()
@@ -18,6 +16,8 @@ set(PROJECT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
 
 file(GLOB_RECURSE parallel-packed-csr_SOURCES "${PROJECT_SOURCE_DIR}/*.cpp")
 file(GLOB_RECURSE parallel-packed-csr_HEADERS "${PROJECT_SOURCE_DIR}/*.h")
+
+include(${CMAKE_SOURCE_DIR}/cmake/modules/clang-format.cmake)
 
 set(parallel-packed-csr_INCLUDE_DIRS "")
 foreach (_headerFile ${parallel-packed-csr_HEADERS})
