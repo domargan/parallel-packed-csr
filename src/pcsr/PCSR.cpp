@@ -267,6 +267,12 @@ void PCSR::half_list() {
       new_array[j++] = edges.items[i];
     }
   }
+  // set remaining elements to null
+  for (; j < edges.N; j++) {
+    new_array[j].value = 0;
+    new_array[j].dest = 0;
+  }
+
   if (is_numa_available) {
     numa_free(edges.items, edges.N * 2 * sizeof(*(edges.items)));
   } else {
