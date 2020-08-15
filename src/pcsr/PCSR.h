@@ -53,10 +53,12 @@ typedef struct insertion_info {
   bool double_list;      // double_list during redistr
 } insertion_info_t;
 
-#define is_null(val) val == 0
-#define NEED_GLOBAL_WRITE -1
-#define NEED_RETRY -2
-#define EDGE_NOT_FOUND -3
+template <typename T>
+constexpr bool is_null(T val) {
+  return val == 0;
+}
+
+enum SpecialCases { NEED_GLOBAL_WRITE = -1, NEED_RETRY = -2, EDGE_NOT_FOUND = -3 };
 
 class PCSR {
  public:
