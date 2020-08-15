@@ -1,6 +1,7 @@
-//
-// Created by menges on 7/20/20.
-//
+/**
+ * @file bfs.h
+ * @author Christian Menges
+ */
 
 #include <cstdint>
 #include <queue>

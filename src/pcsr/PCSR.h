@@ -144,7 +144,6 @@ class PCSR {
   void release_locks_no_inc(pair<int, int> acquired_locks);
   uint32_t find_value(uint32_t src, uint32_t dest);
   vector<uint32_t> sparse_matrix_vector_multiplication(std::vector<uint32_t> const &v);
-  vector<float> pagerank(std::vector<float> const &node_values);
   void double_list();
   void half_list();
   int slide_right(int index, uint32_t src);

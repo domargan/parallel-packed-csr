@@ -4,6 +4,7 @@
  */
 
 #include <bfs.h>
+#include <pagerank.h>
 
 #include <chrono>
 #include <cmath>
@@ -155,11 +156,21 @@ int main(int argc, char *argv[]) {
   }
 
   // run BFS
-  auto start = chrono::steady_clock::now();
-  auto res = bfs(*thread_pool->pcsr, 0);
-  auto finish = chrono::steady_clock::now();
-  cout << "BFS result size: " << res.size() << std::endl;
-  cout << "BFS time: " << chrono::duration_cast<chrono::milliseconds>(finish - start).count() << std::endl;
+  {
+    auto start = chrono::steady_clock::now();
+    auto res = bfs(*thread_pool->pcsr, 0);
+    auto finish = chrono::steady_clock::now();
+    cout << "BFS result size: " << res.size() << std::endl;
+    cout << "BFS time: " << chrono::duration_cast<chrono::milliseconds>(finish - start).count() << std::endl;
+  }
+
+  {
+    std::vector<float> weights(thread_pool->pcsr->get_n(), 1.0f);
+    auto start = chrono::steady_clock::now();
+    auto res = pagerank(*thread_pool->pcsr, weights);
+    auto finish = chrono::steady_clock::now();
+    cout << "Pagerank time: " << chrono::duration_cast<chrono::milliseconds>(finish - start).count() << std::endl;
+  }
 
   // DEBUGGING CODE
   // Check that all edges are there and in sorted order

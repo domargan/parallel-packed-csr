@@ -77,3 +77,9 @@ uint64_t PPPCSR::get_n() {
   }
   return n;
 }
+
+node_t &PPPCSR::getNode(int id) { return partitions[get_partiton(id)].getNode(id - distribution[get_partiton(id)]); }
+
+const node_t &PPPCSR::getNode(int id) const {
+  return partitions[get_partiton(id)].getNode(id - distribution[get_partiton(id)]);
+}
