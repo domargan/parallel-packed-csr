@@ -37,12 +37,12 @@ typedef struct _pair_double {
   double y;
 } pair_double;
 
-template<typename T>
-void checkAllocation(T* ptr) {
-    if(ptr == NULL) {
-        cout << "Allocation failed. Abort\n";
-        exit(EXIT_FAILURE);
-    }
+template <typename T>
+void checkAllocation(T *ptr) {
+  if (ptr == NULL) {
+    cout << "Allocation failed. Abort\n";
+    exit(EXIT_FAILURE);
+  }
 }
 int isPowerOfTwo(int x) { return ((x != 0) && !(x & (x - 1))); }
 
@@ -60,35 +60,14 @@ bool is_sentinel(edge_t e) { return e.dest == UINT32_MAX || e.value == UINT32_MA
 
 void PCSR::clear() {
   int n = 0;
-  if(is_numa_available) {
-      numa_free(edges.items, edges.N * sizeof(*(edges.items)));
+  if (is_numa_available) {
+    numa_free(edges.items, edges.N * sizeof(*(edges.items)));
   } else {
-      free(edges.items);
+    free(edges.items);
   }
   edges.N = 2 << bsr_word(n);
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
-}
-
-vector<float> PCSR::pagerank(std::vector<float> const &node_values) {
-  uint64_t n = get_n();
-
-  vector<float> output(n, 0);
-  float *output_p = output.data();
-  for (int i = 0; i < n; i++) {
-    uint32_t start = nodes[i].beginning;
-    uint32_t end = nodes[i].end;
-
-    // get neighbors
-    // start at +1 for the sentinel
-    float contrib = (node_values[i] / nodes[i].num_neighbors);
-    for (int j = start + 1; j < end; j++) {
-      if (!is_null(edges.items[j].value)) {
-        output_p[edges.items[j].dest] += contrib;
-      }
-    }
-  }
-  return output;
 }
 
 vector<tuple<uint32_t, uint32_t, uint32_t>> PCSR::get_edges() {
@@ -189,7 +168,7 @@ void PCSR::fix_sentinel(int32_t node_index, int in) {
 // index: starting position in ofm structure
 // len: area to redistribute
 void PCSR::redistribute(int index, int len) {
-    edge_t *space = (edge_t *) malloc(len * sizeof(*(edges.items)));
+  edge_t *space = (edge_t *)malloc(len * sizeof(*(edges.items)));
   int j = 0;
 
   // move all items in ofm in the range into
@@ -221,8 +200,7 @@ void PCSR::redistribute(int index, int len) {
     }
     index_d += step;
   }
-        free(space);
-
+  free(space);
 }
 
 void PCSR::double_list() {
@@ -231,38 +209,37 @@ void PCSR::double_list() {
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
   // Added by Eleni Alevra - START
-  if(is_numa_available) {
-      node_locks = (shared_timed_mutex **) numa_realloc(node_locks, prev_locks_size * sizeof(shared_timed_mutex *),
-              (edges.N / edges.logN) * sizeof(shared_timed_mutex *));
-      checkAllocation(node_locks);
-      edges.node_version_counters =
-              (atomic<int> *) numa_realloc(edges.node_version_counters, prev_locks_size * sizeof(atomic_int),
-                      (edges.N / edges.logN) * sizeof(atomic_int));
-      checkAllocation(edges.node_version_counters);
+  if (is_numa_available) {
+    node_locks = (shared_timed_mutex **)numa_realloc(node_locks, prev_locks_size * sizeof(shared_timed_mutex *),
+                                                     (edges.N / edges.logN) * sizeof(shared_timed_mutex *));
+    checkAllocation(node_locks);
+    edges.node_version_counters = (atomic<int> *)numa_realloc(
+        edges.node_version_counters, prev_locks_size * sizeof(atomic_int), (edges.N / edges.logN) * sizeof(atomic_int));
+    checkAllocation(edges.node_version_counters);
   } else {
-      node_locks = (shared_timed_mutex **) realloc(node_locks, (edges.N / edges.logN) * sizeof(shared_timed_mutex *));
-      edges.node_version_counters =
-              (atomic<int> *) realloc(edges.node_version_counters, (edges.N / edges.logN) * sizeof(atomic_int));
+    node_locks = (shared_timed_mutex **)realloc(node_locks, (edges.N / edges.logN) * sizeof(shared_timed_mutex *));
+    edges.node_version_counters =
+        (atomic<int> *)realloc(edges.node_version_counters, (edges.N / edges.logN) * sizeof(atomic_int));
   }
   for (int i = prev_locks_size; i < edges.N / edges.logN; i++) {
-//      if(is_numa_available) {
-//          node_locks[i] = static_cast<shared_timed_mutex *>(numa_alloc_onnode(sizeof(shared_timed_mutex), domain));
-//          checkAllocation(node_locks[i]);
-//          shared_timed_mutex mtx;
-//          memcpy(&node_locks[i], &mtx, sizeof(mtx));
-//      } else {
-          node_locks[i] = new shared_timed_mutex();
-//      }
+    //      if(is_numa_available) {
+    //          node_locks[i] = static_cast<shared_timed_mutex *>(numa_alloc_onnode(sizeof(shared_timed_mutex),
+    //          domain)); checkAllocation(node_locks[i]); shared_timed_mutex mtx; memcpy(&node_locks[i], &mtx,
+    //          sizeof(mtx));
+    //      } else {
+    node_locks[i] = new shared_timed_mutex();
+    //      }
 
     edges.node_version_counters[i] = 0;
   }
   // Added by Eleni Alevra - END
 
-    if(is_numa_available) {
-        edges.items = (edge_t *) numa_realloc(edges.items, (edges.N /2)* sizeof(*(edges.items)), edges.N * sizeof(*(edges.items)));
-    } else {
-        edges.items = (edge_t *) realloc(edges.items, edges.N * sizeof(*(edges.items)));
-    }
+  if (is_numa_available) {
+    edges.items =
+        (edge_t *)numa_realloc(edges.items, (edges.N / 2) * sizeof(*(edges.items)), edges.N * sizeof(*(edges.items)));
+  } else {
+    edges.items = (edge_t *)realloc(edges.items, edges.N * sizeof(*(edges.items)));
+  }
 
   for (int i = edges.N / 2; i < edges.N; i++) {
     edges.items[i].value = 0;  // setting second half to null
@@ -276,13 +253,13 @@ void PCSR::half_list() {
   edges.N /= 2;
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
-    edge_t *new_array;
-    if(is_numa_available) {
-        new_array= (edge_t *)numa_alloc_onnode(edges.N * sizeof(*(edges.items)), domain);
-        checkAllocation(new_array);
-    } else {
-        new_array= (edge_t *)malloc(edges.N * sizeof(*(edges.items)));
-    }
+  edge_t *new_array;
+  if (is_numa_available) {
+    new_array = (edge_t *)numa_alloc_onnode(edges.N * sizeof(*(edges.items)), domain);
+    checkAllocation(new_array);
+  } else {
+    new_array = (edge_t *)malloc(edges.N * sizeof(*(edges.items)));
+  }
 
   int j = 0;
   for (int i = 0; i < edges.N * 2; i++) {
@@ -290,11 +267,16 @@ void PCSR::half_list() {
       new_array[j++] = edges.items[i];
     }
   }
-  if(is_numa_available) {
-      numa_free(edges.items, edges.N * 2 * sizeof(*(edges.items)));
+  // set remaining elements to null
+  for (; j < edges.N; j++) {
+    new_array[j].value = 0;
+    new_array[j].dest = 0;
   }
-  else {
-      free(edges.items);
+
+  if (is_numa_available) {
+    numa_free(edges.items, edges.N * 2 * sizeof(*(edges.items)));
+  } else {
+    free(edges.items);
   }
 
   edges.items = new_array;
@@ -802,9 +784,8 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
   }
 }
 
-PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain) :
-        is_numa_available{numa_available() >= 0},
-    domain(domain) {
+PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain)
+    : is_numa_available{numa_available() >= 0}, domain(domain) {
   edges.N = 2 << bsr_word(init_n);
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
@@ -813,13 +794,13 @@ PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain) :
   lock_bsearch = lock_search;
   if (is_numa_available) {
     edges.node_version_counters = (atomic<int> *)numa_alloc_onnode((edges.N / edges.logN) * sizeof(atomic_int), domain);
-      checkAllocation(edges.node_version_counters);
+    checkAllocation(edges.node_version_counters);
     node_locks =
         (shared_timed_mutex **)numa_alloc_onnode((edges.N / edges.logN) * sizeof(shared_timed_mutex *), domain);
-      checkAllocation(node_locks);
-      edges.items = (edge_t *)numa_alloc_onnode(edges.N * sizeof(*(edges.items)), domain);
+    checkAllocation(node_locks);
+    edges.items = (edge_t *)numa_alloc_onnode(edges.N * sizeof(*(edges.items)), domain);
 
-      checkAllocation(edges.items);
+    checkAllocation(edges.items);
   } else {
     edges.node_version_counters = (atomic<int> *)malloc((edges.N / edges.logN) * sizeof(atomic_int));
     node_locks = (shared_timed_mutex **)malloc((edges.N / edges.logN) * sizeof(shared_timed_mutex *));
@@ -834,14 +815,13 @@ PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain) :
     edges.items[i].dest = 0;
   }
   for (int i = 0; i < edges.N / edges.logN; i++) {
-//      if (is_numa_available) {
-//          node_locks[i] = static_cast<shared_timed_mutex *>(numa_alloc_onnode(sizeof(shared_timed_mutex), domain));
-//          checkAllocation( node_locks[i]);
-//          shared_timed_mutex mtx;
-//          memcpy(&node_locks[i], &mtx, sizeof(mtx));
-//      } else {
-          node_locks[i] = new shared_timed_mutex();
-//      }
+    //      if (is_numa_available) {
+    //          node_locks[i] = static_cast<shared_timed_mutex *>(numa_alloc_onnode(sizeof(shared_timed_mutex),
+    //          domain)); checkAllocation( node_locks[i]); shared_timed_mutex mtx; memcpy(&node_locks[i], &mtx,
+    //          sizeof(mtx));
+    //      } else {
+    node_locks[i] = new shared_timed_mutex();
+    //      }
   }
 
   for (int i = 0; i < src_n; i++) {
@@ -850,22 +830,22 @@ PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain) :
 }
 
 PCSR::~PCSR() {
-    if(is_numa_available) {
-        numa_free(edges.items, edges.N * sizeof(*(edges.items)));
-        for (int i = 0; i < (edges.N / edges.logN); i++) {
-//            numa_free( node_locks[i], sizeof(shared_timed_mutex));
-            delete node_locks[i];
-        }
-        numa_free(node_locks, (edges.N / edges.logN) * sizeof(shared_timed_mutex*));
-        numa_free(edges.node_version_counters, (edges.N / edges.logN) * sizeof(atomic<int>));
-    }else {
-        free(edges.items);
-        for (int i = 0; i < (edges.N / edges.logN); i++) {
-            delete node_locks[i];
-        }
-        free(node_locks);
-        free(edges.node_version_counters);
+  if (is_numa_available) {
+    numa_free(edges.items, edges.N * sizeof(*(edges.items)));
+    for (int i = 0; i < (edges.N / edges.logN); i++) {
+      //            numa_free( node_locks[i], sizeof(shared_timed_mutex));
+      delete node_locks[i];
     }
+    numa_free(node_locks, (edges.N / edges.logN) * sizeof(shared_timed_mutex *));
+    numa_free(edges.node_version_counters, (edges.N / edges.logN) * sizeof(atomic<int>));
+  } else {
+    free(edges.items);
+    for (int i = 0; i < (edges.N / edges.logN); i++) {
+      delete node_locks[i];
+    }
+    free(node_locks);
+    free(edges.node_version_counters);
+  }
 }
 
 /**
@@ -1036,7 +1016,7 @@ pair<pair<int, int>, insertion_info_t *> PCSR::acquire_insert_locks(uint32_t ind
 
   pair_double density_b = density_bound(&edges, level);
   double density = get_density(&edges, node_index, len) + (1.0 / len);
-  insertion_info_t * info = (insertion_info_t *) malloc(sizeof(insertion_info_t));
+  insertion_info_t *info = (insertion_info_t *)malloc(sizeof(insertion_info_t));
 
   info->double_list = false;
 
@@ -1272,7 +1252,8 @@ pair<double, int> PCSR::redistr_store(edge_t *space, int index, int len) {
 }
 
 // Added by Eleni Alevra
-PCSR::PCSR(uint32_t init_n, vector<condition_variable *> *cvs, bool lock_search, int domain) : is_numa_available{numa_available() >= 0}, domain(domain) {
+PCSR::PCSR(uint32_t init_n, vector<condition_variable *> *cvs, bool lock_search, int domain)
+    : is_numa_available{numa_available() >= 0}, domain(domain) {
   edges.N = 2 << bsr_word(init_n);
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
@@ -1285,11 +1266,11 @@ PCSR::PCSR(uint32_t init_n, vector<condition_variable *> *cvs, bool lock_search,
 
   if (is_numa_available) {
     edges.node_version_counters = (atomic<int> *)numa_alloc_onnode((edges.N / edges.logN) * sizeof(atomic_int), domain);
-      checkAllocation(edges.node_version_counters);
+    checkAllocation(edges.node_version_counters);
     node_locks =
         (shared_timed_mutex **)numa_alloc_onnode((edges.N / edges.logN) * sizeof(shared_timed_mutex *), domain);
-      checkAllocation(node_locks);
-      edges.items = (edge_t *)numa_alloc_onnode(edges.N * sizeof(*(edges.items)), domain);
+    checkAllocation(node_locks);
+    edges.items = (edge_t *)numa_alloc_onnode(edges.N * sizeof(*(edges.items)), domain);
     checkAllocation(edges.items);
   } else {
     edges.node_version_counters = (atomic<int> *)malloc((edges.N / edges.logN) * sizeof(atomic_int));
@@ -1306,7 +1287,7 @@ PCSR::PCSR(uint32_t init_n, vector<condition_variable *> *cvs, bool lock_search,
   }
 
   for (int i = 0; i < edges.N / edges.logN; i++) {
-      node_locks[i] = new shared_timed_mutex();
+    node_locks[i] = new shared_timed_mutex();
   }
 
   for (int i = 0; i < init_n; i++) {

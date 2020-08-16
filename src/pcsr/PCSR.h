@@ -53,10 +53,12 @@ typedef struct insertion_info {
   bool double_list;      // double_list during redistr
 } insertion_info_t;
 
-#define is_null(val) val == 0
-#define NEED_GLOBAL_WRITE -1
-#define NEED_RETRY -2
-#define EDGE_NOT_FOUND -3
+template <typename T>
+constexpr bool is_null(T val) {
+  return val == 0;
+}
+
+enum SpecialCases { NEED_GLOBAL_WRITE = -1, NEED_RETRY = -2, EDGE_NOT_FOUND = -3 };
 
 class PCSR {
  public:
@@ -144,7 +146,6 @@ class PCSR {
   void release_locks_no_inc(pair<int, int> acquired_locks);
   uint32_t find_value(uint32_t src, uint32_t dest);
   vector<uint32_t> sparse_matrix_vector_multiplication(std::vector<uint32_t> const &v);
-  vector<float> pagerank(std::vector<float> const &node_values);
   void double_list();
   void half_list();
   int slide_right(int index, uint32_t src);

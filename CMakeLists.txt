@@ -3,8 +3,6 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 
 project(parallel-packed-csr VERSION 0.1 LANGUAGES CXX)
 
-include(${CMAKE_SOURCE_DIR}/cmake/modules/clang-format.cmake)
-
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif ()
@@ -18,6 +16,13 @@ set(PROJECT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
 
 file(GLOB_RECURSE parallel-packed-csr_SOURCES "${PROJECT_SOURCE_DIR}/*.cpp")
 file(GLOB_RECURSE parallel-packed-csr_HEADERS "${PROJECT_SOURCE_DIR}/*.h")
+
+set(PROJECT_TEST_DIR ${CMAKE_SOURCE_DIR}/test)
+
+file(GLOB_RECURSE parallel-packed-csr_TEST_SOURCES "${PROJECT_TEST_DIR}/*.cpp")
+file(GLOB_RECURSE parallel-packed-csr_TEST_HEADERS "${PROJECT_TEST_DIR}/*.h")
+
+include(${CMAKE_SOURCE_DIR}/cmake/modules/clang-format.cmake)
 
 set(parallel-packed-csr_INCLUDE_DIRS "")
 foreach (_headerFile ${parallel-packed-csr_HEADERS})
@@ -44,7 +49,7 @@ find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 enable_testing()
 list(REMOVE_ITEM parallel-packed-csr_SOURCES ${PROJECT_SOURCE_DIR}/main.cpp)
-add_executable(tests ${parallel-packed-csr_SOURCES} ${CMAKE_SOURCE_DIR}/test/tests_main.cpp)
-target_include_directories(tests PRIVATE ${parallel-packed-csr_INCLUDE_DIRS})
+add_executable(tests ${parallel-packed-csr_SOURCES} ${parallel-packed-csr_TEST_SOURCES})
+target_include_directories(tests PRIVATE ${parallel-packed-csr_INCLUDE_DIRS} ${PROJECT_TEST_DIR})
 target_link_libraries(tests ${GTEST_LIBRARIES} pthread numa)
 

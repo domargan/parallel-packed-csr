@@ -20,10 +20,9 @@ using namespace std;
 /**
  * Initializes a pool of threads. Every thread has its own task queue.
  */
-ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes, int partitions_per_domain) :
-        available_nodes(numa_max_node()+1),
-        partitions_per_domain(partitions_per_domain)
-{
+ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes,
+                                   int partitions_per_domain)
+    : available_nodes(numa_max_node() + 1), partitions_per_domain(partitions_per_domain) {
   tasks.resize(NUM_OF_THREADS);
   indeces.resize(available_nodes * partitions_per_domain, 0);
   pcsr = new PPPCSR(init_num_nodes, init_num_nodes, lock_search, partitions_per_domain);
@@ -33,9 +32,10 @@ ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, u
 // Does insertions, deletions and reads on the PCSR
 // Finishes when finished is set to true and there are no outstanding tasks
 void ThreadPoolPPPCSR::execute(int thread_id) {
-  cout << "Thread " << thread_id << " has " << tasks[thread_id].size() << " tasks, runs on domain " << (thread_id ) / std::max(1ul, tasks.size() / available_nodes) << endl;
+  cout << "Thread " << thread_id << " has " << tasks[thread_id].size() << " tasks, runs on domain "
+       << (thread_id) / std::max(1ul, tasks.size() / available_nodes) << endl;
   if (numa_available() >= 0) {
-    numa_run_on_node((thread_id ) / std::max(1ul, tasks.size() / available_nodes));
+    numa_run_on_node((thread_id) / std::max(1ul, tasks.size() / available_nodes));
   }
   while (!finished || !tasks[thread_id].empty()) {
     if (!tasks[thread_id].empty()) {
@@ -55,25 +55,22 @@ void ThreadPoolPPPCSR::execute(int thread_id) {
 // Submit an update for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
   auto par = pcsr->get_partiton(src);
-  auto index = (indeces[par]++)%(std::max(1ul,tasks.size() / available_nodes));
-    tasks[(par / partitions_per_domain) * (tasks.size() / available_nodes) + index]
-    .push(task{true, false, src, target});
+  auto index = (indeces[par]++) % (std::max(1ul, tasks.size() / available_nodes));
+  tasks[(par / partitions_per_domain) * (tasks.size() / available_nodes) + index].push(task{true, false, src, target});
 }
 
 // Submit a delete edge task for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_delete(int thread_id, int src, int target) {
-    auto par = pcsr->get_partiton(src);
-    auto index = (indeces[par]++)%(std::max(1ul,tasks.size() / available_nodes));
-    tasks[(par / partitions_per_domain) * (tasks.size() / available_nodes) + index]
-            .push(task{false, false, src, target});
+  auto par = pcsr->get_partiton(src);
+  auto index = (indeces[par]++) % (std::max(1ul, tasks.size() / available_nodes));
+  tasks[(par / partitions_per_domain) * (tasks.size() / available_nodes) + index].push(task{false, false, src, target});
 }
 
 // Submit a read neighbourhood task for vertex src to thread with number thread_id
 void ThreadPoolPPPCSR::submit_read(int thread_id, int src) {
-    auto par = pcsr->get_partiton(src);
-    auto index = (indeces[par]++) % (std::max(1ul,tasks.size() / available_nodes));
-    tasks[(par / partitions_per_domain) * (tasks.size() / available_nodes) + index]
-            .push(task{false, true, src, src});
+  auto par = pcsr->get_partiton(src);
+  auto index = (indeces[par]++) % (std::max(1ul, tasks.size() / available_nodes));
+  tasks[(par / partitions_per_domain) * (tasks.size() / available_nodes) + index].push(task{false, true, src, src});
 }
 
 // starts a new number of threads

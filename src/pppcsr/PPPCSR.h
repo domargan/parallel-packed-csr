@@ -33,6 +33,18 @@ class PPPCSR {
    */
   uint64_t get_n();
 
+  /**
+   * Returns a ref. to the node with the given id
+   * @return ref. to node
+   */
+  node_t &getNode(int id);
+
+  /**
+   * Returns a const ref. to the node with the given id
+   * @return const ref. to node
+   */
+  const node_t &getNode(int id) const;
+
  private:
   /// different partitions
   std::vector<PCSR> partitions;
