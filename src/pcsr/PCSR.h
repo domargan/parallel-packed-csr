@@ -80,7 +80,7 @@ class PCSR {
    * Returns the node count
    * @return node count
    */
-  uint64_t get_n();
+  uint64_t get_n() const;
 
   /**
    * inserts nodes and edges at the front ot the data structure
@@ -171,7 +171,7 @@ class PCSR {
    * Returns true if every neighbourhood is sorted
    * @return sorted
    */
-  bool is_sorted();
+  bool is_sorted() const;
   /**
    * Returns the total number of stored edges
    * @return #edges

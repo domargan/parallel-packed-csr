@@ -94,7 +94,7 @@ vector<tuple<uint32_t, uint32_t, uint32_t>> PCSR::get_edges() {
   return output;
 }
 
-uint64_t PCSR::get_n() { return nodes.size(); }
+uint64_t PCSR::get_n() const { return nodes.size(); }
 
 uint64_t PCSR::get_size() {
   uint64_t size = nodes.capacity() * sizeof(node_t);
@@ -851,7 +851,7 @@ bool PCSR::edge_exists(uint32_t src, uint32_t dest) {
 // Used for debugging
 // Returns true if every neighbourhood is sorted
 // Added by Eleni Alevra
-bool PCSR::is_sorted() {
+bool PCSR::is_sorted() const {
   for (int i = 0; i < nodes.size(); i++) {
     int prev = 0;
     for (int j = nodes[i].beginning + 1; j < nodes[i].end; j++) {
@@ -870,18 +870,22 @@ bool PCSR::is_sorted() {
 // Reads the neighbourhood of vertex src
 // Added by Eleni Alevra
 void PCSR::read_neighbourhood(int src) {
-  int k = 0;
-  for (int i = nodes[src].beginning + 1; i < nodes[src].end; i++) {
-    k = edges.items[i].dest;
+  if (src < get_n()) {
+    int k = 0;
+    for (int i = nodes[src].beginning + 1; i < nodes[src].end; i++) {
+      k = edges.items[i].dest;
+    }
   }
 }
 
 vector<int> PCSR::get_neighbourhood(int src) const {
   std::vector<int> neighbours;
-  neighbours.reserve(nodes[src].num_neighbors);
-  for (int i = nodes[src].beginning + 1; i < nodes[src].end; i++) {
-    if (edges.items[i].value != 0) {
-      neighbours.push_back(edges.items[i].dest);
+  if (src < get_n()) {
+    neighbours.reserve(nodes[src].num_neighbors);
+    for (int i = nodes[src].beginning + 1; i < nodes[src].end; i++) {
+      if (edges.items[i].value != 0) {
+        neighbours.push_back(edges.items[i].dest);
+      }
     }
   }
   return neighbours;
@@ -1352,7 +1356,7 @@ bool PCSR::got_correct_insertion_index(edge_t ins_edge, uint32_t src, uint32_t i
 }
 
 void PCSR::add_edge_parallel(uint32_t src, uint32_t dest, uint32_t value, int retries) {
-  if (value != 0) {
+  if (value != 0 && src < get_n()) {
     edge_t e;
     e.src = src;
     e.dest = dest;
