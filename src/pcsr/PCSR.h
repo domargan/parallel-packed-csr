@@ -158,6 +158,8 @@ class PCSR {
   void print_graph(int);
   pair<double, int> redistr_store(edge_t *space, int index, int len);
   void fix_sentinel(int32_t node_index, int in);
+  pair<uint32_t, int> binary_search(edge_t *elem, uint32_t start, uint32_t end, bool unlock);
+
   /**
    * Returns total number of edges in range [index, index + len)
    * @param index start index
@@ -191,6 +193,8 @@ class PCSR {
    * Deletes all edges. The data structure is invalid afterwards
    */
   void clear();
+
+  void nodes_unlock_shared(bool unlock, int start_node, int end_node);
 
   int domain;
   const bool is_numa_available;

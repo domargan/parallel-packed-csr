@@ -37,6 +37,14 @@ typedef struct _pair_double {
   double y;
 } pair_double;
 
+void PCSR::nodes_unlock_shared(bool unlock, int start_node, int end_node) {
+  if (unlock) {
+    for (int i = start_node; i <= end_node; i++) {
+      node_locks[i]->unlock_shared();
+    }
+  }
+}
+
 template <typename T>
 void checkAllocation(T *ptr) {
   if (ptr == NULL) {
@@ -405,16 +413,16 @@ uint32_t find_elem_pointer_reverse(edge_list_t *list, uint32_t index, edge_t ele
 // this is to check if it has changed when we lock to do the insertion
 // This function was modified for Eleni Alevra's implementation to return the version number and to do
 // unlocking when unlock is set
-pair<uint32_t, int> binary_search(edge_list_t *list, edge_t *elem, uint32_t start, uint32_t end,
-                                  shared_timed_mutex **node_locks, bool unlock) {
+pair<uint32_t, int> PCSR::binary_search(edge_t *elem, uint32_t start, uint32_t end, bool unlock) {
   int ins_v = -1;
-  int start_node = find_leaf(list, start) / list->logN;
-  int end_node = find_leaf(list, end) / list->logN;
+  int start_node = find_leaf(&edges, start) / edges.logN;
+  int end_node = find_leaf(&edges, end) / edges.logN;
 
   while (start + 1 < end) {
-    uint32_t mid = (start + end) / 2;
+    // TODO: fix potential overflow for large data sets (use std::midpoint)
+    const uint32_t mid = (start + end) / 2;
     //    elems++;
-    edge_t item = list->items[mid];
+    edge_t item = edges.items[mid];
     uint32_t change = 1;
     uint32_t check = mid;
 
@@ -426,7 +434,7 @@ pair<uint32_t, int> binary_search(edge_list_t *list, edge_t *elem, uint32_t star
         flag = true;
         if (check <= end) {
           //          elems++;
-          item = list->items[check];
+          item = edges.items[check];
           if (!is_null(item.value)) {
             break;
           } else if (check == end) {
@@ -438,38 +446,26 @@ pair<uint32_t, int> binary_search(edge_list_t *list, edge_t *elem, uint32_t star
       if (check >= start) {
         flag = true;
         //        elems++;
-        item = list->items[check];
+        item = edges.items[check];
       }
       change++;
     }
 
-    ins_v = list->node_version_counters[find_leaf(list, check) / list->logN].load();
-    int ins2 = list->node_version_counters[find_leaf(list, mid) / list->logN].load();
+    ins_v = edges.node_version_counters[find_leaf(&edges, check) / edges.logN].load();
+    int ins2 = edges.node_version_counters[find_leaf(&edges, mid) / edges.logN].load();
     if (is_null(item.value) || start == check || end == check) {
       if (!is_null(item.value) && start == check && elem->dest <= item.dest) {
-        if (unlock) {
-          for (int i = start_node; i <= end_node; i++) {
-            node_locks[i]->unlock_shared();
-          }
-        }
+        nodes_unlock_shared(unlock, start_node, end_node);
         return make_pair(check, ins_v);
       }
-      if (unlock) {
-        for (int i = start_node; i <= end_node; i++) {
-          node_locks[i]->unlock_shared();
-        }
-      }
+      nodes_unlock_shared(unlock, start_node, end_node);
       return make_pair(mid, ins2);
     }
 
     // if we found it, return
-    ins_v = list->node_version_counters[find_leaf(list, check) / list->logN].load();
+    ins_v = edges.node_version_counters[find_leaf(&edges, check) / edges.logN].load();
     if (elem->dest == item.dest) {
-      if (unlock) {
-        for (int i = start_node; i <= end_node; i++) {
-          node_locks[i]->unlock_shared();
-        }
-      }
+      nodes_unlock_shared(unlock, start_node, end_node);
       return make_pair(check, ins_v);
     } else if (elem->dest < item.dest) {
       end = check;  // if the searched for item is less than current item, set end
@@ -485,21 +481,13 @@ pair<uint32_t, int> binary_search(edge_list_t *list, edge_t *elem, uint32_t star
   // if you are leq, return start (index where elt is)
   // otherwise, return end (no element greater than you in the range)
   // printf("start = %d, end = %d, n = %d\n", start,end, list->N);
-  ins_v = list->node_version_counters[find_leaf(list, start) / list->logN].load();
-  if (elem->dest <= list->items[start].dest && !is_null(list->items[start].value)) {
-    if (unlock) {
-      for (int i = start_node; i <= end_node; i++) {
-        node_locks[i]->unlock_shared();
-      }
-    }
+  ins_v = edges.node_version_counters[find_leaf(&edges, start) / edges.logN].load();
+  if (elem->dest <= edges.items[start].dest && !is_null(edges.items[start].value)) {
+    nodes_unlock_shared(unlock, start_node, end_node);
     return make_pair(start, ins_v);
   }
-  ins_v = list->node_version_counters[find_leaf(list, end) / list->logN].load();
-  if (unlock) {
-    for (int i = start_node; i <= end_node; i++) {
-      node_locks[i]->unlock_shared();
-    }
-  }
+  ins_v = edges.node_version_counters[find_leaf(&edges, end) / edges.logN].load();
+  nodes_unlock_shared(unlock, start_node, end_node);
   // Could also be null but it's end
   return make_pair(end, ins_v);
 }
@@ -508,7 +496,7 @@ uint32_t PCSR::find_value(uint32_t src, uint32_t dest) {
   edge_t e;
   e.value = 0;
   e.dest = dest;
-  pair<uint32_t, int> bs = binary_search(&edges, &e, nodes[src].beginning + 1, nodes[src].end, node_locks, false);
+  pair<uint32_t, int> bs = binary_search(&e, nodes[src].beginning + 1, nodes[src].end, false);
   uint32_t loc = bs.first;
   if (!is_null(edges.items[loc].value) && edges.items[loc].dest == dest) {
     return edges.items[loc].value;
@@ -525,11 +513,7 @@ void PCSR::insert(uint32_t index, edge_t elem, uint32_t src, insertion_info_t *i
   int len = edges.logN;
 
   // always deposit on the left
-  if (is_null(edges.items[index].value)) {
-    edges.items[index].src = elem.src;
-    edges.items[index].value = elem.value;
-    edges.items[index].dest = elem.dest;
-  } else {
+  if (!is_null(edges.items[index].value)) {
     // if the edge already exists in the graph, update its value
     // do not make another edge
     // return index of the edge that already exists
@@ -543,7 +527,7 @@ void PCSR::insert(uint32_t index, edge_t elem, uint32_t src, insertion_info_t *i
       node_t node = nodes[src];
       // If we are at this point we already have a global lock on the data structure so there is no need to
       // do any extra locking for binary search
-      uint32_t loc_to_add = binary_search(&edges, &elem, node.beginning + 1, node.end, node_locks, false).first;
+      uint32_t loc_to_add = binary_search(&elem, node.beginning + 1, node.end, false).first;
       return insert(loc_to_add, elem, src, nullptr);
     } else {
       if (slide_right(index, src) == -1) {
@@ -551,10 +535,10 @@ void PCSR::insert(uint32_t index, edge_t elem, uint32_t src, insertion_info_t *i
         slide_left(index, src);
       }
     }
-    edges.items[index].src = elem.src;
-    edges.items[index].value = elem.value;
-    edges.items[index].dest = elem.dest;
   }
+  edges.items[index].src = elem.src;
+  edges.items[index].value = elem.value;
+  edges.items[index].dest = elem.dest;
 
   double density = get_density(&edges, node_index, len);
 
@@ -743,7 +727,7 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
       remove_edge(src, dest);
       return;
     }
-    loc_to_rem = binary_search(&edges, &e, beginning + 1, end, node_locks, false).first;
+    loc_to_rem = binary_search(&e, beginning + 1, end, false).first;
     // Keep the version number of the PCSR node we will remove from so that if by the time we lock it has changed we
     // can re-start. We can't keep the PCSR node locked after binary search in case we have to acquire some locks to
     // its left first.
@@ -752,7 +736,7 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
       node_locks[i]->unlock_shared();
     }
   } else {
-    pair<int, int> bs = binary_search(&edges, &e, node.beginning + 1, node.end, node_locks, false);
+    pair<int, int> bs = binary_search(&e, node.beginning + 1, node.end, false);
     loc_to_rem = bs.first;
     ins_node_v = bs.second;
   }
@@ -768,10 +752,9 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
   if (acquired_locks.first == NEED_GLOBAL_WRITE) {
     // we need to halve the array
     edges.global_lock->unlock_shared();
-    edges.global_lock->lock();
-    loc_to_rem = binary_search(&edges, &e, node.beginning + 1, node.end, node_locks, false).first;
+    const std::lock_guard<std::shared_timed_mutex> lck(*edges.global_lock);
+    loc_to_rem = binary_search(&e, node.beginning + 1, node.end, false).first;
     remove(loc_to_rem, e, src);
-    edges.global_lock->unlock();
   } else if (acquired_locks.first == NEED_RETRY) {
     // we need to re-start because when we acquired the locks things had changed
     nodes[src].num_neighbors++;
@@ -861,7 +844,7 @@ bool PCSR::edge_exists(uint32_t src, uint32_t dest) {
   edge_t e;
   e.dest = dest;
   e.value = 1;
-  uint32_t loc_to_rem = binary_search(&edges, &e, node.beginning + 1, node.end, node_locks, false).first;
+  uint32_t loc_to_rem = binary_search(&e, node.beginning + 1, node.end, false).first;
   return !(is_null(e.value)) && !is_sentinel(e) && edges.items[loc_to_rem].dest == e.dest;
 }
 
@@ -895,6 +878,7 @@ void PCSR::read_neighbourhood(int src) {
 
 vector<int> PCSR::get_neighbourhood(int src) const {
   std::vector<int> neighbours;
+  neighbours.reserve(nodes[src].num_neighbors);
   for (int i = nodes[src].beginning + 1; i < nodes[src].end; i++) {
     if (edges.items[i].value != 0) {
       neighbours.push_back(edges.items[i].dest);
@@ -1376,7 +1360,7 @@ void PCSR::add_edge_parallel(uint32_t src, uint32_t dest, uint32_t value, int re
     if (retries > 3) {
       edges.global_lock->lock();
       nodes[src].num_neighbors++;
-      int pos = binary_search(&edges, &e, nodes[src].beginning + 1, nodes[src].end, node_locks, false).first;
+      int pos = binary_search(&e, nodes[src].beginning + 1, nodes[src].end, false).first;
       insert(pos, e, src, nullptr);
       edges.global_lock->unlock();
       return;
@@ -1405,11 +1389,11 @@ void PCSR::add_edge_parallel(uint32_t src, uint32_t dest, uint32_t value, int re
         add_edge_parallel(src, dest, value, retries + 1);
         return;
       }
-      bs = binary_search(&edges, &e, beginning + 1, end, node_locks, true);
+      bs = binary_search(&e, beginning + 1, end, true);
       loc_to_add = bs.first;
     } else {
       // get back index where the new edge should go and the version number of its PCSR node when we read its value
-      bs = binary_search(&edges, &e, beginning + 1, end, node_locks, false);
+      bs = binary_search(&e, beginning + 1, end, false);
       loc_to_add = bs.first;
       uint32_t index_node = get_node_id(find_leaf(&edges, loc_to_add));
       if (index_node < first_node) {
@@ -1430,7 +1414,7 @@ void PCSR::add_edge_parallel(uint32_t src, uint32_t dest, uint32_t value, int re
     if (acquired_locks.first.first == NEED_GLOBAL_WRITE) {
       edges.global_lock->unlock_shared();
       edges.global_lock->lock();
-      loc_to_add = binary_search(&edges, &e, nodes[src].beginning + 1, nodes[src].end, node_locks, false).first;
+      loc_to_add = binary_search(&e, nodes[src].beginning + 1, nodes[src].end, false).first;
       insert(loc_to_add, e, src, acquired_locks.second);
       edges.global_lock->unlock();
     } else {
