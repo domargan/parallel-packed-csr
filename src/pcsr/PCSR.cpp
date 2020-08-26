@@ -243,6 +243,7 @@ void PCSR::double_list() {
 }
 
 void PCSR::half_list() {
+  int prev_locks_size = (edges.N / edges.logN);
   edges.N /= 2;
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
@@ -266,9 +267,18 @@ void PCSR::half_list() {
     new_array[j].dest = 0;
   }
 
+  for (int i = (edges.N / edges.logN); i < prev_locks_size; i++) {
+    edges.node_locks[i]->unlock();
+    delete edges.node_locks[i];
+  }
+
   if (is_numa_available) {
+    edges.node_locks = (HybridLock **)numa_realloc(edges.node_locks, prev_locks_size * sizeof(HybridLock *),
+                                                   (edges.N / edges.logN) * sizeof(HybridLock *));
+    checkAllocation(edges.node_locks);
     numa_free(edges.items, edges.N * 2 * sizeof(*(edges.items)));
   } else {
+    edges.node_locks = (HybridLock **)realloc(edges.node_locks, (edges.N / edges.logN) * sizeof(HybridLock *));
     free(edges.items);
   }
 
@@ -738,6 +748,7 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
     const std::lock_guard<HybridLock> lck(*edges.global_lock);
     loc_to_rem = binary_search(&e, node.beginning + 1, node.end, false).first;
     remove(loc_to_rem, e, src);
+    release_locks_no_inc({0, edges.N / edges.logN - 1});
   } else if (acquired_locks.first == NEED_RETRY) {
     // we need to re-start because when we acquired the locks things had changed
     nodes[src].num_neighbors++;
@@ -971,9 +982,6 @@ pair<pair<int, int>, insertion_info_t *> PCSR::acquire_insert_locks(uint32_t ind
 
   pair_double density_b = density_bound(&edges, level);
   double density = get_density(&edges, node_index, len) + (1.0 / len);
-  insertion_info_t *info = (insertion_info_t *)malloc(sizeof(insertion_info_t));
-
-  info->double_list = false;
 
   while (density >= density_b.y) {
     len *= 2;
@@ -1003,6 +1011,8 @@ pair<pair<int, int>, insertion_info_t *> PCSR::acquire_insert_locks(uint32_t ind
       for (int i = min_node; i <= max_node; i++) {
         edges.node_locks[i]->unlock();
       }
+      insertion_info_t *info = (insertion_info_t *)malloc(sizeof(insertion_info_t));
+
       info->double_list = true;
       return make_pair(make_pair(NEED_GLOBAL_WRITE, NEED_GLOBAL_WRITE), info);
     }
@@ -1026,6 +1036,8 @@ pair<pair<int, int>, insertion_info_t *> PCSR::acquire_insert_locks(uint32_t ind
   node_index = new_node_index;
 
   // lock PCSR nodes needed for slide_right / slide_left
+  insertion_info_t *info = (insertion_info_t *)malloc(sizeof(insertion_info_t));
+  info->double_list = false;
   info->max_len = len;
   info->node_index_final = node_index;
   len = edges.logN;
@@ -1284,15 +1296,19 @@ bool PCSR::got_correct_insertion_index(edge_t ins_edge, uint32_t src, uint32_t i
         edges.node_locks[++max_node]->lock();
       }
     }
-    edge_t item = edges.items[ind];
-    // if it's in the same neighbourhood and smaller we're in the wrong position
-    if (ind < edges.N && !is_null(item.value) && !is_sentinel(item) && item.src == src && item.dest < elem.dest) {
-      return false;
-    }
-    // if it's a sentinel node for the wrong vertex the index is wrong
-    if (!(is_null(item.value)) && is_sentinel(item) &&
-        ((src != nodes.size() - 1 && item.value != src + 1) || (src == nodes.size() - 1 && item.value == UINT32_MAX))) {
-      return false;
+
+    if (ind < edges.N) {
+      edge_t item = edges.items[ind];
+      // if it's in the same neighbourhood and smaller we're in the wrong position
+      if (!is_null(item.value) && !is_sentinel(item) && item.src == src && item.dest < elem.dest) {
+        return false;
+      }
+      // if it's a sentinel node for the wrong vertex the index is wrong
+      if (!(is_null(item.value)) && is_sentinel(item) &&
+          ((src != nodes.size() - 1 && item.value != src + 1) ||
+           (src == nodes.size() - 1 && item.value == UINT32_MAX))) {
+        return false;
+      }
     }
   }
   // Go to the left to find the next element to the left and make sure it's less than the one we are inserting

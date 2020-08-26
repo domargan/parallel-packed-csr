@@ -35,6 +35,14 @@ class HybridLock {
 
   inline int load() const { return version_counter.load(); }
 
+  bool lockable() {
+    auto r = mtx.try_lock();
+    if (r) {
+      mtx.unlock();
+    }
+    return r;
+  }
+
  private:
   std::shared_timed_mutex mtx;
   std::atomic<int> version_counter;
