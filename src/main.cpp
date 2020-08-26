@@ -49,26 +49,8 @@ pair<vector<pair<int, int>>, int> read_input(string filename, char delimiter = '
   return make_pair(edges, num_nodes);
 }
 
-// Loads core graph
-ThreadPool *insert_with_thread_pool(const vector<pair<int, int>> &input, int threads, bool lock_search, int num_nodes,
-                                    int partitions_per_domain) {
-  int NUM_OF_THREADS = threads;
-
-  ThreadPool *thread_pool = new ThreadPool(NUM_OF_THREADS, lock_search, num_nodes, partitions_per_domain);
-  for (int i = 0; i < input.size(); i++) {
-    thread_pool->submit_add(i % NUM_OF_THREADS, input[i].first, input[i].second);
-  }
-  auto start = chrono::steady_clock::now();
-  thread_pool->start(NUM_OF_THREADS);
-  thread_pool->stop();
-  auto finish = chrono::steady_clock::now();
-  //  cout << "Elapsed wall clock time: " << chrono::duration_cast<chrono::milliseconds>(finish - start).count() <<
-  //  endl;
-  return thread_pool;
-}
-
 // Does insertions
-ThreadPool *update_existing_graph(const vector<pair<int, int>> &input, ThreadPool *thread_pool, int threads, int size) {
+void update_existing_graph(const vector<pair<int, int>> &input, ThreadPool *thread_pool, int threads, int size) {
   for (int i = 0; i < size; i++) {
     thread_pool->submit_add(i % threads, input[i].first, input[i].second);
   }
@@ -78,7 +60,6 @@ ThreadPool *update_existing_graph(const vector<pair<int, int>> &input, ThreadPoo
   auto finish = chrono::steady_clock::now();
   //  cout << "Elapsed wall clock time: " << chrono::duration_cast<chrono::milliseconds>(finish - start).count() <<
   //  endl;
-  return thread_pool;
 }
 
 // Does deletions
@@ -145,9 +126,9 @@ int main(int argc, char *argv[]) {
   }
   cout << "Core graph size: " << core_graph.size() << endl;
   //   sort(core_graph.begin(), core_graph.end());
+  auto thread_pool = make_unique<ThreadPool>(threads, lock_search, num_nodes, partitions_per_domain);
   // Load core graph
-  unique_ptr<ThreadPool> thread_pool(
-      insert_with_thread_pool(core_graph, threads, lock_search, num_nodes, partitions_per_domain));
+  update_existing_graph(core_graph, thread_pool.get(), threads, core_graph.size());
   // Do updates
   if (insert) {
     update_existing_graph(updates, thread_pool.get(), threads, size);
