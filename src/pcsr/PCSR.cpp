@@ -243,6 +243,7 @@ void PCSR::double_list() {
 }
 
 void PCSR::half_list() {
+  int prev_locks_size = (edges.N / edges.logN);
   edges.N /= 2;
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
@@ -266,9 +267,18 @@ void PCSR::half_list() {
     new_array[j].dest = 0;
   }
 
+  for (int i = (edges.N / edges.logN); i < prev_locks_size; i++) {
+    edges.node_locks[i]->unlock();
+    delete edges.node_locks[i];
+  }
+
   if (is_numa_available) {
+    edges.node_locks = (HybridLock **)numa_realloc(edges.node_locks, prev_locks_size * sizeof(HybridLock *),
+                                                   (edges.N / edges.logN) * sizeof(HybridLock *));
+    checkAllocation(edges.node_locks);
     numa_free(edges.items, edges.N * 2 * sizeof(*(edges.items)));
   } else {
+    edges.node_locks = (HybridLock **)realloc(edges.node_locks, (edges.N / edges.logN) * sizeof(HybridLock *));
     free(edges.items);
   }
 
@@ -738,7 +748,7 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
     const std::lock_guard<HybridLock> lck(*edges.global_lock);
     loc_to_rem = binary_search(&e, node.beginning + 1, node.end, false).first;
     remove(loc_to_rem, e, src);
-    release_locks_no_inc({0, edges.N / edges.logN});
+    release_locks_no_inc({0, edges.N / edges.logN - 1});
   } else if (acquired_locks.first == NEED_RETRY) {
     // we need to re-start because when we acquired the locks things had changed
     nodes[src].num_neighbors++;
