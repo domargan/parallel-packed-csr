@@ -1284,15 +1284,20 @@ bool PCSR::got_correct_insertion_index(edge_t ins_edge, uint32_t src, uint32_t i
         edges.node_locks[++max_node]->lock();
       }
     }
-    edge_t item = edges.items[ind];
-    // if it's in the same neighbourhood and smaller we're in the wrong position
-    if (ind < edges.N && !is_null(item.value) && !is_sentinel(item) && item.src == src && item.dest < elem.dest) {
-      return false;
-    }
-    // if it's a sentinel node for the wrong vertex the index is wrong
-    if (!(is_null(item.value)) && is_sentinel(item) &&
-        ((src != nodes.size() - 1 && item.value != src + 1) || (src == nodes.size() - 1 && item.value == UINT32_MAX))) {
-      return false;
+
+    if(ind < edges.N) {
+
+        edge_t item = edges.items[ind];
+        // if it's in the same neighbourhood and smaller we're in the wrong position
+        if (!is_null(item.value) && !is_sentinel(item) && item.src == src && item.dest < elem.dest) {
+            return false;
+        }
+        // if it's a sentinel node for the wrong vertex the index is wrong
+        if (!(is_null(item.value)) && is_sentinel(item) &&
+            ((src != nodes.size() - 1 && item.value != src + 1) ||
+             (src == nodes.size() - 1 && item.value == UINT32_MAX))) {
+            return false;
+        }
     }
   }
   // Go to the left to find the next element to the left and make sure it's less than the one we are inserting
