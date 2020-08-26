@@ -4,8 +4,9 @@
  */
 
 #include <atomic>
-#include <shared_mutex>
 #include <vector>
+
+#include "hybridLock.h"
 
 using namespace std;
 #ifndef PCSR2_PCSR_H
@@ -35,9 +36,8 @@ typedef struct edge_list {
   int N;
   int H;
   int logN;
-  shared_ptr<shared_timed_mutex> global_lock;
-  atomic<int> *node_version_counters;  // Keeps a version number for each leaf node.
-  // The version number is incremented when a change happens
+  shared_ptr<HybridLock> global_lock;
+  HybridLock **node_locks;  // locks for every PCSR leaf node
   edge_t *items;
 } edge_list_t;
 
@@ -46,7 +46,6 @@ typedef struct edge_list {
 // To avoid repeating this check during the actual insertion we pass this struct to it so it can immediately know
 // up to where it needs to redistribute
 typedef struct insertion_info {
-  bool slide_right;      // false means slide_left
   uint32_t first_empty;  // first empty spot for slide
   int max_len;           // len to redistribute up to
   int node_index_final;  // final node index for redistr
@@ -125,8 +124,7 @@ class PCSR {
  private:
   // data members
   std::vector<node_t> nodes;
-  shared_timed_mutex **node_locks;  // locks for every PCSR leaf node
-  bool lock_bsearch = false;        // true if we lock during binary search
+  bool lock_bsearch = false;  // true if we lock during binary search
 
   // members used when parallel redistributing is enabled
   bool adding_sentinels = false;              // true if we are in the middle of inserting a sentinel node
