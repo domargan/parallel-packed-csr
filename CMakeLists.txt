@@ -52,4 +52,5 @@ list(REMOVE_ITEM parallel-packed-csr_SOURCES ${PROJECT_SOURCE_DIR}/main.cpp)
 add_executable(tests ${parallel-packed-csr_SOURCES} ${parallel-packed-csr_TEST_SOURCES})
 target_include_directories(tests PRIVATE ${parallel-packed-csr_INCLUDE_DIRS} ${PROJECT_TEST_DIR})
 target_link_libraries(tests ${GTEST_LIBRARIES} pthread numa)
+gtest_discover_tests(tests)
 
