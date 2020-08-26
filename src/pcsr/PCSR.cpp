@@ -738,6 +738,7 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
     const std::lock_guard<HybridLock> lck(*edges.global_lock);
     loc_to_rem = binary_search(&e, node.beginning + 1, node.end, false).first;
     remove(loc_to_rem, e, src);
+    release_locks_no_inc({0, edges.N / edges.logN});
   } else if (acquired_locks.first == NEED_RETRY) {
     // we need to re-start because when we acquired the locks things had changed
     nodes[src].num_neighbors++;
@@ -1285,19 +1286,18 @@ bool PCSR::got_correct_insertion_index(edge_t ins_edge, uint32_t src, uint32_t i
       }
     }
 
-    if(ind < edges.N) {
-
-        edge_t item = edges.items[ind];
-        // if it's in the same neighbourhood and smaller we're in the wrong position
-        if (!is_null(item.value) && !is_sentinel(item) && item.src == src && item.dest < elem.dest) {
-            return false;
-        }
-        // if it's a sentinel node for the wrong vertex the index is wrong
-        if (!(is_null(item.value)) && is_sentinel(item) &&
-            ((src != nodes.size() - 1 && item.value != src + 1) ||
-             (src == nodes.size() - 1 && item.value == UINT32_MAX))) {
-            return false;
-        }
+    if (ind < edges.N) {
+      edge_t item = edges.items[ind];
+      // if it's in the same neighbourhood and smaller we're in the wrong position
+      if (!is_null(item.value) && !is_sentinel(item) && item.src == src && item.dest < elem.dest) {
+        return false;
+      }
+      // if it's a sentinel node for the wrong vertex the index is wrong
+      if (!(is_null(item.value)) && is_sentinel(item) &&
+          ((src != nodes.size() - 1 && item.value != src + 1) ||
+           (src == nodes.size() - 1 && item.value == UINT32_MAX))) {
+        return false;
+      }
     }
   }
   // Go to the left to find the next element to the left and make sure it's less than the one we are inserting
