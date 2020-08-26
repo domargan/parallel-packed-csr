@@ -972,9 +972,6 @@ pair<pair<int, int>, insertion_info_t *> PCSR::acquire_insert_locks(uint32_t ind
 
   pair_double density_b = density_bound(&edges, level);
   double density = get_density(&edges, node_index, len) + (1.0 / len);
-  insertion_info_t *info = (insertion_info_t *)malloc(sizeof(insertion_info_t));
-
-  info->double_list = false;
 
   while (density >= density_b.y) {
     len *= 2;
@@ -1004,6 +1001,8 @@ pair<pair<int, int>, insertion_info_t *> PCSR::acquire_insert_locks(uint32_t ind
       for (int i = min_node; i <= max_node; i++) {
         edges.node_locks[i]->unlock();
       }
+      insertion_info_t *info = (insertion_info_t *)malloc(sizeof(insertion_info_t));
+
       info->double_list = true;
       return make_pair(make_pair(NEED_GLOBAL_WRITE, NEED_GLOBAL_WRITE), info);
     }
@@ -1027,6 +1026,8 @@ pair<pair<int, int>, insertion_info_t *> PCSR::acquire_insert_locks(uint32_t ind
   node_index = new_node_index;
 
   // lock PCSR nodes needed for slide_right / slide_left
+  insertion_info_t *info = (insertion_info_t *)malloc(sizeof(insertion_info_t));
+  info->double_list = false;
   info->max_len = len;
   info->node_index_final = node_index;
   len = edges.logN;
