@@ -39,7 +39,7 @@ class ThreadPoolPPPCSR {
   vector<queue<task>> tasks;
   chrono::steady_clock::time_point s;
   chrono::steady_clock::time_point end;
-  bool finished = false;
+  std::atomic_bool finished;
 
   void execute(int);
 
