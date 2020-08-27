@@ -21,11 +21,11 @@ using namespace std;
  * Initializes a pool of threads. Every thread has its own task queue.
  */
 ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes,
-                                   int partitions_per_domain)
+                                   int partitions_per_domain, bool use_numa)
     : finished(false), available_nodes(numa_max_node() + 1), partitions_per_domain(partitions_per_domain) {
   tasks.resize(NUM_OF_THREADS);
   indeces.resize(available_nodes * partitions_per_domain, 0);
-  pcsr = new PPPCSR(init_num_nodes, init_num_nodes, lock_search, partitions_per_domain);
+  pcsr = new PPPCSR(init_num_nodes, init_num_nodes, lock_search, partitions_per_domain, use_numa);
 }
 
 // Function executed by worker threads

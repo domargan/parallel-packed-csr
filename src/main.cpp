@@ -18,11 +18,8 @@
 #include <utility>
 #include <vector>
 
-//#include "thread_pool/thread_pool.h"
-
+#include "thread_pool/thread_pool.h"
 #include "thread_pool_pppcsr/thread_pool_pppcsr.h"
-
-using ThreadPool = ThreadPoolPPPCSR;
 
 using namespace std;
 
@@ -50,7 +47,8 @@ pair<vector<pair<int, int>>, int> read_input(string filename, char delimiter = '
 }
 
 // Does insertions
-void update_existing_graph(const vector<pair<int, int>> &input, ThreadPool *thread_pool, int threads, int size) {
+template <typename ThreadPool_t>
+void update_existing_graph(const vector<pair<int, int>> &input, ThreadPool_t *thread_pool, int threads, int size) {
   for (int i = 0; i < size; i++) {
     thread_pool->submit_add(i % threads, input[i].first, input[i].second);
   }
@@ -63,7 +61,8 @@ void update_existing_graph(const vector<pair<int, int>> &input, ThreadPool *thre
 }
 
 // Does deletions
-void thread_pool_deletions(ThreadPool *thread_pool, const vector<pair<int, int>> &deletions, int threads, int size) {
+template <typename ThreadPool_t>
+void thread_pool_deletions(ThreadPool_t *thread_pool, const vector<pair<int, int>> &deletions, int threads, int size) {
   int NUM_OF_THREADS = threads;
   for (int i = 0; i < size; i++) {
     thread_pool->submit_delete(i % NUM_OF_THREADS, deletions[i].first, deletions[i].second);
@@ -76,12 +75,45 @@ void thread_pool_deletions(ThreadPool *thread_pool, const vector<pair<int, int>>
   //  endl;
 }
 
+template <typename ThreadPool_t>
+void execute(int threads, int size, bool insert, const vector<pair<int, int>> &core_graph,
+             const vector<pair<int, int>> &updates, std::unique_ptr<ThreadPool_t> &thread_pool) {
+  // Load core graph
+  update_existing_graph(core_graph, thread_pool.get(), threads, core_graph.size());
+  // Do updates
+  if (insert) {
+    update_existing_graph(updates, thread_pool.get(), threads, size);
+  } else {
+    thread_pool_deletions(thread_pool.get(), updates, threads, size);
+  }
+
+  // run BFS
+  {
+    auto start = chrono::steady_clock::now();
+    auto res = bfs(*thread_pool->pcsr, 0);
+    auto finish = chrono::steady_clock::now();
+    cout << "BFS result size: " << res.size() << endl;
+    cout << "BFS time: " << chrono::duration_cast<chrono::milliseconds>(finish - start).count() << endl;
+  }
+
+  {
+    vector<float> weights(thread_pool->pcsr->get_n(), 1.0f);
+    auto start = chrono::steady_clock::now();
+    auto res = pagerank(*thread_pool->pcsr, weights);
+    auto finish = chrono::steady_clock::now();
+    cout << "Pagerank time: " << chrono::duration_cast<chrono::milliseconds>(finish - start).count() << endl;
+  }
+}
+
+enum class Version { PPCSR, PPPCSR, PPPCSRNUMA };
+
 int main(int argc, char *argv[]) {
   int threads = 8;
   int size = 1000000;
   int num_nodes = 0;
   bool lock_search = true;
   bool insert = true;
+  Version v = Version::PPPCSRNUMA;
   int partitions_per_domain = 1;
   vector<pair<int, int>> core_graph;
   vector<pair<int, int>> updates;
@@ -97,6 +129,12 @@ int main(int argc, char *argv[]) {
       insert = true;
     } else if (s.rfind("-delete", 0) == 0) {
       insert = false;
+    } else if (s.rfind("-pppcsrnuma", 0) == 0) {
+      v = Version::PPPCSRNUMA;
+    } else if (s.rfind("-pppcsr", 0) == 0) {
+      v = Version::PPPCSR;
+    } else if (s.rfind("-ppcsr", 0) == 0) {
+      v = Version::PPCSR;
     } else if (s.rfind("-partitions_per_domain=", 0) == 0) {
       partitions_per_domain = stoi(s.substr(string("-partitions_per_domain=").length(), s.length()));
     } else if (s.rfind("-core_graph=", 0) == 0) {
@@ -126,31 +164,21 @@ int main(int argc, char *argv[]) {
   }
   cout << "Core graph size: " << core_graph.size() << endl;
   //   sort(core_graph.begin(), core_graph.end());
-  auto thread_pool = make_unique<ThreadPool>(threads, lock_search, num_nodes, partitions_per_domain);
-  // Load core graph
-  update_existing_graph(core_graph, thread_pool.get(), threads, core_graph.size());
-  // Do updates
-  if (insert) {
-    update_existing_graph(updates, thread_pool.get(), threads, size);
-  } else {
-    thread_pool_deletions(thread_pool.get(), updates, threads, size);
-  }
-
-  // run BFS
-  {
-    auto start = chrono::steady_clock::now();
-    auto res = bfs(*thread_pool->pcsr, 0);
-    auto finish = chrono::steady_clock::now();
-    cout << "BFS result size: " << res.size() << std::endl;
-    cout << "BFS time: " << chrono::duration_cast<chrono::milliseconds>(finish - start).count() << std::endl;
-  }
-
-  {
-    std::vector<float> weights(thread_pool->pcsr->get_n(), 1.0f);
-    auto start = chrono::steady_clock::now();
-    auto res = pagerank(*thread_pool->pcsr, weights);
-    auto finish = chrono::steady_clock::now();
-    cout << "Pagerank time: " << chrono::duration_cast<chrono::milliseconds>(finish - start).count() << std::endl;
+  switch (v) {
+    case Version::PPCSR: {
+      auto thread_pool = make_unique<ThreadPool>(threads, lock_search, num_nodes, partitions_per_domain);
+      execute(threads, size, insert, core_graph, updates, thread_pool);
+      break;
+    }
+    case Version::PPPCSR: {
+      auto thread_pool = make_unique<ThreadPoolPPPCSR>(threads, lock_search, num_nodes, partitions_per_domain, false);
+      execute(threads, size, insert, core_graph, updates, thread_pool);
+      break;
+    }
+    default: {
+      auto thread_pool = make_unique<ThreadPoolPPPCSR>(threads, lock_search, num_nodes, partitions_per_domain, true);
+      execute(threads, size, insert, core_graph, updates, thread_pool);
+    }
   }
 
   // DEBUGGING CODE

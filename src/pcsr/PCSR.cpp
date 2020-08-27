@@ -762,7 +762,7 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
 }
 
 PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain)
-    : is_numa_available{numa_available() >= 0}, domain(domain) {
+    : is_numa_available{numa_available() >= 0 && domain >= 0}, domain(domain) {
   edges.N = 2 << bsr_word(init_n);
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
@@ -1220,7 +1220,7 @@ pair<double, int> PCSR::redistr_store(edge_t *space, int index, int len) {
 
 // Added by Eleni Alevra
 PCSR::PCSR(uint32_t init_n, vector<condition_variable *> *cvs, bool lock_search, int domain)
-    : is_numa_available{numa_available() >= 0}, domain(domain) {
+    : is_numa_available{numa_available() >= 0 && domain >= 0}, domain(domain) {
   edges.N = 2 << bsr_word(init_n);
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);

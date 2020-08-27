@@ -7,12 +7,12 @@
 
 TEST_F(DataStructureTest, Initialization) {
   const int size = 10;
-  PPPCSR pcsr(size, size, false, 1);
+  PPPCSR pcsr(size, size, false, 1, false);
   EXPECT_EQ(pcsr.get_n(), size);
 }
 
 TEST_F(DataStructureTest, add_node) {
-  PPPCSR pcsr(0, 0, false, 1);
+  PPPCSR pcsr(0, 0, false, 1, false);
   EXPECT_EQ(pcsr.get_n(), 0);
   pcsr.add_node();
   EXPECT_EQ(pcsr.get_n(), 1);
@@ -20,7 +20,7 @@ TEST_F(DataStructureTest, add_node) {
 }
 
 TEST_F(DataStructureTest, add_edge) {
-  PPPCSR pcsr(10, 10, false, 1);
+  PPPCSR pcsr(10, 10, false, 1, false);
   // Try to add edge without corresponding node
   pcsr.add_edge(11, 1, 1);
 
@@ -32,7 +32,7 @@ TEST_F(DataStructureTest, add_edge) {
 }
 
 TEST_F(DataStructureTest, remove_edge) {
-  PPPCSR pcsr(10, 10, false, 1);
+  PPPCSR pcsr(10, 10, false, 1, false);
   pcsr.add_node();
   pcsr.remove_edge(0, 1);
   EXPECT_FALSE(pcsr.edge_exists(0, 1));
