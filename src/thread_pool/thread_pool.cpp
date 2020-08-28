@@ -19,7 +19,7 @@ using namespace std;
 ThreadPool::ThreadPool(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes, int partitions_per_domain)
     : finished(false) {
   tasks.resize(NUM_OF_THREADS);
-  pcsr = new PCSR(init_num_nodes, init_num_nodes, lock_search);
+  pcsr = new PCSR(init_num_nodes, init_num_nodes, lock_search, -1);
 }
 
 // Function executed by worker threads
