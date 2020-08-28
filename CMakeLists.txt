@@ -45,12 +45,28 @@ set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 target_link_libraries(parallel-packed-csr PRIVATE Threads::Threads numa)
 
-find_package(GTest REQUIRED)
-include_directories(${GTEST_INCLUDE_DIRS})
-enable_testing()
 list(REMOVE_ITEM parallel-packed-csr_SOURCES ${PROJECT_SOURCE_DIR}/main.cpp)
 add_executable(tests ${parallel-packed-csr_SOURCES} ${parallel-packed-csr_TEST_SOURCES})
-target_include_directories(tests PRIVATE ${parallel-packed-csr_INCLUDE_DIRS} ${PROJECT_TEST_DIR})
-target_link_libraries(tests ${GTEST_LIBRARIES} pthread numa)
-gtest_discover_tests(tests)
 
+find_package(GTest)
+if (GTEST_FOUND)
+    include_directories(${GTEST_INCLUDE_DIRS})
+    target_link_libraries(tests ${GTEST_LIBRARIES} pthread numa)
+else()
+    include(${CMAKE_SOURCE_DIR}/cmake/CPM.cmake)
+    CPMAddPackage(
+            NAME googletest
+            GITHUB_REPOSITORY google/googletest
+            GIT_TAG release-1.8.1
+            VERSION 1.8.1
+            OPTIONS
+            "INSTALL_GTEST OFF"
+            "gtest_force_shared_crt ON"
+    )
+    target_link_libraries(tests gtest gtest_main gmock pthread numa)
+endif()
+
+target_include_directories(tests PRIVATE ${parallel-packed-csr_INCLUDE_DIRS} ${PROJECT_TEST_DIR})
+
+enable_testing()
+gtest_discover_tests(tests)
