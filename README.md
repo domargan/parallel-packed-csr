@@ -23,15 +23,8 @@ Run the `parallel-packed-csr` binary from your build directory.
 * `-partitions_per_domain=`: specifies the number of graph partitions per NUMA domain
 * `-insert`: inserts the edges from the update file to the core graph
 * `-delete`: deletes the edges from the update file from the core graph
-* `-core_graph=`: specifies the filename of the core graph, default=shuffled_higgs.txt
-* `-update_file=`: specifies the filename of the update file, default=insertions.txt
-
-# Data files
-The sample/test data files included in the `data/` directory are the following:
-
-* `shuffled_higgs.txt`: core graph, a shuffled version of the [Higgs Twitter dataset](https://snap.stanford.edu/data/higgs-twitter.html).
-* `update_files/insertions.txt`: a list of 1 million edges, randomly sampled from a power law distribution, to be inserted.
-* `update_files/deletions.txt`: a list of 1 million edges in the core graph to be deleted.
+* `-core_graph=`: specifies the filename of the core graph
+* `-update_file=`: specifies the filename of the update file
 
 # Authors
 * Eleni Alevra

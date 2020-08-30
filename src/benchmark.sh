@@ -8,8 +8,9 @@ PPCSR_PATH="$HOME/parallel-packed-csr"
 PPCSR_EXEC="$PPCSR_PATH/build/parallel-packed-csr"
 
 # Define input files
-PPCSR_INSERTIONS_FILE="$PPCSR_PATH/data/update_files/insertions.txt"
-PPCSR_DELETIONS_FILE="$PPCSR_PATH/data/update_files/deletions.txt"
+PPCSR_CORE_GRAPH_FILE="$1"
+PPCSR_INSERTIONS_FILE="$2"
+PPCSR_DELETIONS_FILE="$3"
 
 # Define output files
 TIME=$(date +%Y%m%d_%H%M%S)
@@ -19,10 +20,16 @@ PPCSR_PLOT_FILE=$(mktemp gnuplot.pXXX)
 PPCSR_PDF_PLOT_FILE=ppcsr_strong_scaling_plot
 
 # Define experiment parameters
-REPETITIONS=3
+REPETITIONS=2
 CORES=(1 5 10 15 20)
 
 SIZE=1000000
+
+######################################
+
+echo "Core graph file: $PPCSR_CORE_GRAPH_FILE"
+echo "Edge insertions file: $PPCSR_INSERTIONS_FILE"
+echo "Edge deletions file: $PPCSR_DELETIONS_FILE"
 
 ######################################
 
@@ -50,7 +57,7 @@ for core in ${CORES[@]}; do
   for v in -ppcsr -pppcsr -pppcsrnuma; do
     insert=""
     for ((r = 0; r < REPETITIONS; r++)); do
-      output=$($PPCSR_EXEC -threads=$core $v -size=$SIZE -update_file=$PPCSR_INSERTIONS_FILE | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
+      output=$($PPCSR_EXEC -threads=$core $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_INSERTIONS_FILE | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
       insert="${insert},${output}"
     done
     avg_insert=$(echo "$insert" | awk '{l=split($0,a,","); s=0; for (i in a)s+=a[i]; print s/(l-1);}')
@@ -58,7 +65,7 @@ for core in ${CORES[@]}; do
 
     delete=""
     for ((r = 0; r < REPETITIONS; r++)); do
-      output=$($PPCSR_EXEC -delete -threads=$core $v -size=$SIZE -update_file=$PPCSR_DELETIONS_FILE | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
+      output=$($PPCSR_EXEC -delete -threads=$core $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_DELETIONS_FILE | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
       delete="${delete},${output}"
     done
     avg_delete=$(echo "$delete" | awk '{l=split($0,a,","); s=0; for (i in a)s+=a[i]; print s/(l-1);}')
