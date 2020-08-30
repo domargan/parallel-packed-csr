@@ -26,7 +26,7 @@ using namespace std;
 enum class Operation { READ, ADD, DELETE };
 
 // Reads edge list with separator
-pair<vector<tuple<Operation, int, int>>, int> read_mixed_input(string filename, Operation defaultOp) {
+pair<vector<tuple<Operation, int, int>>, int> read_input(string filename, Operation defaultOp) {
   ifstream f;
   string line;
   f.open(filename);
@@ -142,7 +142,7 @@ int main(int argc, char *argv[]) {
     } else if (s.rfind("-core_graph=", 0) == 0) {
       string core_graph_filename = s.substr(string("-core_graph=").length(), s.length());
       int temp = 0;
-      std::tie(core_graph, temp) = read_mixed_input(core_graph_filename, Operation::ADD);
+      std::tie(core_graph, temp) = read_input(core_graph_filename, Operation::ADD);
       num_nodes = std::max(num_nodes, temp);
     } else if (s.rfind("-update_file=", 0) == 0) {
       string update_filename = s.substr(string("-update_file=").length(), s.length());
@@ -152,7 +152,7 @@ int main(int argc, char *argv[]) {
       if (!insert) {
         defaultOp = Operation::DELETE;
       }
-      std::tie(updates, temp) = read_mixed_input(update_filename, defaultOp);
+      std::tie(updates, temp) = read_input(update_filename, defaultOp);
       num_nodes = std::max(num_nodes, temp);
       size = std::min((size_t)size, updates.size());
     }
@@ -160,7 +160,7 @@ int main(int argc, char *argv[]) {
   if (core_graph.empty()) {
     cout << "Using default core graph" << endl;
     int temp = 0;
-    std::tie(core_graph, temp) = read_mixed_input("../data/shuffled_higgs.txt", Operation::ADD);
+    std::tie(core_graph, temp) = read_input("../data/shuffled_higgs.txt", Operation::ADD);
     num_nodes = std::max(num_nodes, temp);
   }
   if (updates.empty()) {
@@ -170,7 +170,7 @@ int main(int argc, char *argv[]) {
     if (!insert) {
       defaultOp = Operation::DELETE;
     }
-    std::tie(updates, temp) = read_mixed_input("../data/shuffled_higgs.txt", defaultOp);
+    std::tie(updates, temp) = read_input("../data/shuffled_higgs.txt", defaultOp);
     num_nodes = std::max(num_nodes, temp);
   }
   cout << "Core graph size: " << core_graph.size() << endl;
