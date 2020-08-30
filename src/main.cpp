@@ -23,69 +23,71 @@
 
 using namespace std;
 
-// Reads edge list with comma separator
-pair<vector<pair<int, int>>, int> read_input(string filename, char delimiter = ',') {
+enum class Operation { READ, ADD, DELETE };
+
+// Reads edge list with separator
+pair<vector<tuple<Operation, int, int>>, int> read_input(string filename, Operation defaultOp) {
   ifstream f;
   string line;
   f.open(filename);
   if (!f.good()) {
     exit(EXIT_FAILURE);
   }
-  vector<pair<int, int>> edges;
+  vector<tuple<Operation, int, int>> edges;
   int num_nodes = 0;
+  std::size_t pos, pos2;
   while (getline(f, line)) {
-    if (line.find(delimiter) == std::string::npos) {
-      return read_input(filename, ' ');
+    int src = stoi(line, &pos);
+    int target = stoi(line.substr(pos + 1), &pos2);
+
+    num_nodes = std::max(num_nodes, std::max(src, target));
+
+    Operation op = defaultOp;
+    if (pos + 1 + pos2 + 1 < line.length()) {
+      switch (line[pos + 1 + pos2 + 1]) {
+        case '1':
+          op = Operation::ADD;
+          break;
+        case '0':
+          op = Operation::DELETE;
+          break;
+        default:
+          cerr << "Invalid operation";
+      }
     }
-    int src = stoi(line.substr(0, line.find(delimiter)));
-    num_nodes = std::max(num_nodes, src);
-    int target = stoi(line.substr(line.find(delimiter) + 1, line.size()));
-    num_nodes = std::max(num_nodes, target);
-    edges.emplace_back(src, target);
+    edges.emplace_back(op, src, target);
   }
   return make_pair(edges, num_nodes);
 }
 
 // Does insertions
 template <typename ThreadPool_t>
-void update_existing_graph(const vector<pair<int, int>> &input, ThreadPool_t *thread_pool, int threads, int size) {
+void update_existing_graph(const vector<tuple<Operation, int, int>> &input, ThreadPool_t *thread_pool, int threads,
+                           int size) {
   for (int i = 0; i < size; i++) {
-    thread_pool->submit_add(i % threads, input[i].first, input[i].second);
+    switch (get<0>(input[i])) {
+      case Operation::ADD:
+        thread_pool->submit_add(i % threads, get<1>(input[i]), get<2>(input[i]));
+        break;
+      case Operation::DELETE:
+        thread_pool->submit_delete(i % threads, get<1>(input[i]), get<2>(input[i]));
+        break;
+      case Operation::READ:
+        cerr << "Not implemented\n";
+        break;
+    }
   }
-  auto start = chrono::steady_clock::now();
   thread_pool->start(threads);
   thread_pool->stop();
-  auto finish = chrono::steady_clock::now();
-  //  cout << "Elapsed wall clock time: " << chrono::duration_cast<chrono::milliseconds>(finish - start).count() <<
-  //  endl;
-}
-
-// Does deletions
-template <typename ThreadPool_t>
-void thread_pool_deletions(ThreadPool_t *thread_pool, const vector<pair<int, int>> &deletions, int threads, int size) {
-  int NUM_OF_THREADS = threads;
-  for (int i = 0; i < size; i++) {
-    thread_pool->submit_delete(i % NUM_OF_THREADS, deletions[i].first, deletions[i].second);
-  }
-  auto start = chrono::steady_clock::now();
-  thread_pool->start(threads);
-  thread_pool->stop();
-  auto finish = chrono::steady_clock::now();
-  //  cout << "Elapsed wall clock time: " << chrono::duration_cast<chrono::milliseconds>(finish - start).count() <<
-  //  endl;
 }
 
 template <typename ThreadPool_t>
-void execute(int threads, int size, bool insert, const vector<pair<int, int>> &core_graph,
-             const vector<pair<int, int>> &updates, std::unique_ptr<ThreadPool_t> &thread_pool) {
+void execute(int threads, int size, const vector<tuple<Operation, int, int>> &core_graph,
+             const vector<tuple<Operation, int, int>> &updates, std::unique_ptr<ThreadPool_t> &thread_pool) {
   // Load core graph
   update_existing_graph(core_graph, thread_pool.get(), threads, core_graph.size());
   // Do updates
-  if (insert) {
-    update_existing_graph(updates, thread_pool.get(), threads, size);
-  } else {
-    thread_pool_deletions(thread_pool.get(), updates, threads, size);
-  }
+  update_existing_graph(updates, thread_pool.get(), threads, size);
 
   // run BFS
   {
@@ -115,8 +117,8 @@ int main(int argc, char *argv[]) {
   bool insert = true;
   Version v = Version::PPPCSRNUMA;
   int partitions_per_domain = 1;
-  vector<pair<int, int>> core_graph;
-  vector<pair<int, int>> updates;
+  vector<tuple<Operation, int, int>> core_graph;
+  vector<tuple<Operation, int, int>> updates;
   for (int i = 1; i < argc; i++) {
     string s = string(argv[i]);
     if (s.rfind("-threads=", 0) == 0) {
@@ -140,26 +142,35 @@ int main(int argc, char *argv[]) {
     } else if (s.rfind("-core_graph=", 0) == 0) {
       string core_graph_filename = s.substr(string("-core_graph=").length(), s.length());
       int temp = 0;
-      std::tie(core_graph, temp) = read_input(core_graph_filename);
+      std::tie(core_graph, temp) = read_input(core_graph_filename, Operation::ADD);
       num_nodes = std::max(num_nodes, temp);
     } else if (s.rfind("-update_file=", 0) == 0) {
       string update_filename = s.substr(string("-update_file=").length(), s.length());
       cout << update_filename << endl;
       int temp = 0;
-      std::tie(updates, temp) = read_input(update_filename);
+      Operation defaultOp = Operation::ADD;
+      if (!insert) {
+        defaultOp = Operation::DELETE;
+      }
+      std::tie(updates, temp) = read_input(update_filename, defaultOp);
       num_nodes = std::max(num_nodes, temp);
+      size = std::min((size_t)size, updates.size());
     }
   }
   if (core_graph.empty()) {
     cout << "Using default core graph" << endl;
     int temp = 0;
-    std::tie(core_graph, temp) = read_input("../data/shuffled_higgs.txt");
+    std::tie(core_graph, temp) = read_input("../data/shuffled_higgs.txt", Operation::ADD);
     num_nodes = std::max(num_nodes, temp);
   }
   if (updates.empty()) {
     cout << "Using default update graph" << endl;
     int temp = 0;
-    std::tie(updates, temp) = read_input("../data/shuffled_higgs.txt");
+    Operation defaultOp = Operation::ADD;
+    if (!insert) {
+      defaultOp = Operation::DELETE;
+    }
+    std::tie(updates, temp) = read_input("../data/shuffled_higgs.txt", defaultOp);
     num_nodes = std::max(num_nodes, temp);
   }
   cout << "Core graph size: " << core_graph.size() << endl;
@@ -167,17 +178,17 @@ int main(int argc, char *argv[]) {
   switch (v) {
     case Version::PPCSR: {
       auto thread_pool = make_unique<ThreadPool>(threads, lock_search, num_nodes, partitions_per_domain);
-      execute(threads, size, insert, core_graph, updates, thread_pool);
+      execute(threads, size, core_graph, updates, thread_pool);
       break;
     }
     case Version::PPPCSR: {
       auto thread_pool = make_unique<ThreadPoolPPPCSR>(threads, lock_search, num_nodes, partitions_per_domain, false);
-      execute(threads, size, insert, core_graph, updates, thread_pool);
+      execute(threads, size, core_graph, updates, thread_pool);
       break;
     }
     default: {
       auto thread_pool = make_unique<ThreadPoolPPPCSR>(threads, lock_search, num_nodes, partitions_per_domain, true);
-      execute(threads, size, insert, core_graph, updates, thread_pool);
+      execute(threads, size, core_graph, updates, thread_pool);
     }
   }
 
