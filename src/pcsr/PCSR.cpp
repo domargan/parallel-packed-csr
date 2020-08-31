@@ -447,12 +447,12 @@ pair<uint32_t, int> PCSR::binary_search(edge_t *elem, uint32_t start, uint32_t e
     ins_v = edges.node_locks[find_leaf(&edges, check) / edges.logN]->load();
     int ins2 = edges.node_locks[find_leaf(&edges, mid) / edges.logN]->load();
     if (is_null(item.value) || start == check || end == check) {
-      if (!is_null(item.value) && start == check && elem->dest <= item.dest) {
-        nodes_unlock_shared(unlock, start_node, end_node);
-        return make_pair(check, ins_v);
-      }
       nodes_unlock_shared(unlock, start_node, end_node);
-      return make_pair(mid, ins2);
+      if (!is_null(item.value) && start == check && elem->dest <= item.dest) {
+        return make_pair(check, ins_v);
+      } else {
+        return make_pair(mid, ins2);
+      }
     }
 
     // if we found it, return
@@ -578,7 +578,7 @@ void PCSR::insert(uint32_t index, edge_t elem, uint32_t src, insertion_info_t *i
   }
 }
 
-void PCSR::remove(uint32_t index, edge_t elem, uint32_t src) {
+void PCSR::remove(uint32_t index, const edge_t &elem, uint32_t src) {
   int node_index = find_leaf(&edges, index);
   // printf("node_index = %d\n", node_index);
   int level = edges.H;
@@ -744,11 +744,12 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
   }
   if (acquired_locks.first == NEED_GLOBAL_WRITE) {
     // we need to halve the array
+    // release all node locks
+    release_locks_no_inc({0, edges.N / edges.logN - 1});
     edges.global_lock->unlock_shared();
     const std::lock_guard<HybridLock> lck(*edges.global_lock);
     loc_to_rem = binary_search(&e, node.beginning + 1, node.end, false).first;
     remove(loc_to_rem, e, src);
-    release_locks_no_inc({0, edges.N / edges.logN - 1});
   } else if (acquired_locks.first == NEED_RETRY) {
     // we need to re-start because when we acquired the locks things had changed
     nodes[src].num_neighbors++;

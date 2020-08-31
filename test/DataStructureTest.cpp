@@ -55,6 +55,7 @@ TEST_F(DataStructureTest, add_remove_edge_1E4) {
       EXPECT_TRUE(pcsr.edges.node_locks[j]->lockable())
           << "Current iteration: " << i << " lock id: " << j;
     }
+    EXPECT_TRUE(pcsr.edges.global_lock->lockable());
   }
   EXPECT_EQ(pcsr.get_n(), 10);
   EXPECT_EQ(pcsr.getNode(0).num_neighbors, edge_count);
@@ -67,6 +68,7 @@ TEST_F(DataStructureTest, add_remove_edge_1E4) {
       EXPECT_TRUE(pcsr.edges.node_locks[j]->lockable())
           << "Current iteration: " << i << " lock id: " << j;
     }
+    EXPECT_TRUE(pcsr.edges.global_lock->lockable());
   }
   EXPECT_EQ(pcsr.get_neighbourhood(0).size(), 0);
   EXPECT_EQ(pcsr.get_n(), 10);
