@@ -22,6 +22,7 @@ PPCSR_PDF_PLOT_FILE=ppcsr_strong_scaling_plot
 # Define experiment parameters
 REPETITIONS=2
 CORES=(1 5 10 15 20)
+NUMA_BOUNDS=(10)
 
 SIZE=1000000
 
@@ -88,7 +89,7 @@ XLABEL="#cores"
 YLABEL="CPU time (ms)"
 
 cat <<EOF >$PPCSR_PLOT_FILE
-set term pdf monochrome font ", 14"
+set term pdf font ", 12"
 set output "${PPCSR_PDF_PLOT_FILE}.pdf"
 set xlabel "${XLABEL}"
 set ylabel "${YLABEL}" offset 1.5
@@ -102,19 +103,31 @@ for i in ${CORES[@]}; do
 done
 echo ')' >>$PPCSR_PLOT_FILE
 
+for i in ${NUMA_BOUNDS[@]}; do
+  echo "set arrow from $i, graph 0 to $i, graph 1 nohead dt 3" >>$PPCSR_PLOT_FILE
+done
+
 cat <<EOF >>$PPCSR_PLOT_FILE
 #set ytics nomirror
 set key left top
-#set key font ",12"
+set key font ",12"
+
+set style line 1 lt 1 lc rgb "blue" lw 1 pt 5 ps 0.5
+set style line 2 lt 1 dt 4 lc rgb "blue" lw 1 pt 4 ps 0.5
+set style line 3 lt 1 lc rgb "red" lw 1 pt 7 ps 0.5
+set style line 4 lt 1 dt 4 lc rgb "red" lw 1 pt 6 ps 0.5
+set style line 5 lt 1 lc rgb "green" lw 1 pt 9 ps 0.5
+set style line 6 lt 1 dt 4 lc rgb "green" lw 1 pt 8 ps 0.5
+
 set xrange [${CORES[0]}:${CORES[-1]}]
 set yrange [0:]
 plot \
-	"$PPCSR_PLOT_DATA" using 1:2 title 'insertions' with linespoint, \
-	"$PPCSR_PLOT_DATA" using 1:3 title 'deletions' with linespoint, \
-	"$PPCSR_PLOT_DATA" using 1:4 title 'insertions par' with linespoint, \
-	"$PPCSR_PLOT_DATA" using 1:5 title 'deletions par' with linespoint, \
-	"$PPCSR_PLOT_DATA" using 1:6 title 'insertions numa' with linespoint, \
-	"$PPCSR_PLOT_DATA" using 1:7 title 'deletions numa' with linespoint
+	"$PPCSR_PLOT_DATA" using 1:2 title 'insertions' with linespoint ls 1, \
+	"$PPCSR_PLOT_DATA" using 1:3 title 'deletions' with linespoint ls 2, \
+	"$PPCSR_PLOT_DATA" using 1:4 title 'insertions par' with linespoint ls 3, \
+	"$PPCSR_PLOT_DATA" using 1:5 title 'deletions par' with linespoint ls 4, \
+	"$PPCSR_PLOT_DATA" using 1:6 title 'insertions numa' with linespoint ls 5, \
+	"$PPCSR_PLOT_DATA" using 1:7 title 'deletions numa' with linespoint ls 6
 EOF
 
 gnuplot $PPCSR_PLOT_FILE
