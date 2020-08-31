@@ -744,11 +744,12 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
   }
   if (acquired_locks.first == NEED_GLOBAL_WRITE) {
     // we need to halve the array
+    // release all node locks
+    release_locks_no_inc({0, edges.N / edges.logN - 1});
     edges.global_lock->unlock_shared();
     const std::lock_guard<HybridLock> lck(*edges.global_lock);
     loc_to_rem = binary_search(&e, node.beginning + 1, node.end, false).first;
     remove(loc_to_rem, e, src);
-    release_locks_no_inc({0, edges.N / edges.logN - 1});
   } else if (acquired_locks.first == NEED_RETRY) {
     // we need to re-start because when we acquired the locks things had changed
     nodes[src].num_neighbors++;
