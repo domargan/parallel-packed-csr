@@ -47,11 +47,15 @@ target_link_libraries(parallel-packed-csr PRIVATE Threads::Threads numa)
 
 list(REMOVE_ITEM parallel-packed-csr_SOURCES ${PROJECT_SOURCE_DIR}/main.cpp)
 add_executable(tests ${parallel-packed-csr_SOURCES} ${parallel-packed-csr_TEST_SOURCES})
+add_executable(tests-tsan ${parallel-packed-csr_SOURCES} ${parallel-packed-csr_TEST_SOURCES})
+add_executable(tests-ubsan ${parallel-packed-csr_SOURCES} ${parallel-packed-csr_TEST_SOURCES})
 
 find_package(GTest)
 if (GTEST_FOUND)
     include_directories(${GTEST_INCLUDE_DIRS})
     target_link_libraries(tests ${GTEST_LIBRARIES} pthread numa)
+    target_link_libraries(tests-tsan ${GTEST_LIBRARIES} pthread numa)
+    target_link_libraries(tests-ubsan ${GTEST_LIBRARIES} pthread numa)
 else()
     include(${CMAKE_SOURCE_DIR}/cmake/CPM.cmake)
     CPMAddPackage(
@@ -64,9 +68,21 @@ else()
             "gtest_force_shared_crt ON"
     )
     target_link_libraries(tests gtest gtest_main gmock pthread numa)
+    target_link_libraries(tests-tsan gtest gtest_main gmock pthread numa)
+    target_link_libraries(tests-ubsan gtest gtest_main gmock pthread numa)
 endif()
 
 target_include_directories(tests PRIVATE ${parallel-packed-csr_INCLUDE_DIRS} ${PROJECT_TEST_DIR})
+target_include_directories(tests-tsan PRIVATE ${parallel-packed-csr_INCLUDE_DIRS} ${PROJECT_TEST_DIR})
+target_include_directories(tests-ubsan PRIVATE ${parallel-packed-csr_INCLUDE_DIRS} ${PROJECT_TEST_DIR})
+
+target_compile_options(tests-tsan PRIVATE -fsanitize=thread -g -O1)
+target_link_options(tests-tsan PRIVATE -fsanitize=thread -g -O1)
+
+target_compile_options(tests-ubsan PRIVATE -fsanitize=undefined -g -O1)
+target_link_options(tests-ubsan PRIVATE -fsanitize=undefined -g -O1)
 
 include (CTest)
 gtest_discover_tests(tests)
+gtest_discover_tests(tests-tsan TEST_SUFFIX -tsan)
+gtest_discover_tests(tests-ubsan TEST_SUFFIX -ubsan)
