@@ -158,20 +158,12 @@ int main(int argc, char *argv[]) {
     }
   }
   if (core_graph.empty()) {
-    cout << "Using default core graph" << endl;
-    int temp = 0;
-    std::tie(core_graph, temp) = read_input("../data/shuffled_higgs.txt", Operation::ADD);
-    num_nodes = std::max(num_nodes, temp);
+    cout << "Core graph file not specified" << endl;
+    exit(EXIT_FAILURE);
   }
   if (updates.empty()) {
-    cout << "Using default update graph" << endl;
-    int temp = 0;
-    Operation defaultOp = Operation::ADD;
-    if (!insert) {
-      defaultOp = Operation::DELETE;
-    }
-    std::tie(updates, temp) = read_input("../data/shuffled_higgs.txt", defaultOp);
-    num_nodes = std::max(num_nodes, temp);
+    cout << "Updates file not specified" << endl;
+    exit(EXIT_FAILURE);
   }
   cout << "Core graph size: " << core_graph.size() << endl;
   //   sort(core_graph.begin(), core_graph.end());
