@@ -68,5 +68,5 @@ endif()
 
 target_include_directories(tests PRIVATE ${parallel-packed-csr_INCLUDE_DIRS} ${PROJECT_TEST_DIR})
 
-enable_testing()
+include (CTest)
 gtest_discover_tests(tests)
