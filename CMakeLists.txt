@@ -51,11 +51,12 @@ add_executable(tests-tsan ${parallel-packed-csr_SOURCES} ${parallel-packed-csr_T
 add_executable(tests-ubsan ${parallel-packed-csr_SOURCES} ${parallel-packed-csr_TEST_SOURCES})
 
 find_package(GTest)
+find_package(OpenMP REQUIRED)
 if (GTEST_FOUND)
     include_directories(${GTEST_INCLUDE_DIRS})
-    target_link_libraries(tests ${GTEST_LIBRARIES} pthread numa)
-    target_link_libraries(tests-tsan ${GTEST_LIBRARIES} pthread numa)
-    target_link_libraries(tests-ubsan ${GTEST_LIBRARIES} pthread numa)
+    target_link_libraries(tests ${GTEST_LIBRARIES} pthread numa OpenMP::OpenMP_CXX)
+    target_link_libraries(tests-tsan ${GTEST_LIBRARIES} pthread numa OpenMP::OpenMP_CXX)
+    target_link_libraries(tests-ubsan ${GTEST_LIBRARIES} pthread numa OpenMP::OpenMP_CXX)
 else()
     include(${CMAKE_SOURCE_DIR}/cmake/CPM.cmake)
     CPMAddPackage(
@@ -67,9 +68,9 @@ else()
             "INSTALL_GTEST OFF"
             "gtest_force_shared_crt ON"
     )
-    target_link_libraries(tests gtest gtest_main gmock pthread numa)
-    target_link_libraries(tests-tsan gtest gtest_main gmock pthread numa)
-    target_link_libraries(tests-ubsan gtest gtest_main gmock pthread numa)
+    target_link_libraries(tests gtest gtest_main gmock pthread numa OpenMP::OpenMP_CXX)
+    target_link_libraries(tests-tsan gtest gtest_main gmock pthread numa OpenMP::OpenMP_CXX)
+    target_link_libraries(tests-ubsan gtest gtest_main gmock pthread numa OpenMP::OpenMP_CXX)
 endif()
 
 target_include_directories(tests PRIVATE ${parallel-packed-csr_INCLUDE_DIRS} ${PROJECT_TEST_DIR})

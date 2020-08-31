@@ -8,6 +8,6 @@
 
 #include <gtest/gtest.h>
 
-class DataStructureTest : public ::testing::Test {};
+class DataStructureTest : public testing::TestWithParam<bool> {};
 
 #endif // PARALLEL_PACKED_CSR_DATASTRUCTURETEST_H
