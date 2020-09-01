@@ -22,14 +22,14 @@ ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, u
     : tasks(NUM_OF_THREADS),
       finished(false),
       available_nodes(numa_max_node() + 1),
-      indeces(available_nodes * partitions_per_domain, 0),
+      indeces(available_nodes, 0),
       partitions_per_domain(partitions_per_domain),
       threadToDomain(NUM_OF_THREADS),
-      firstThreadDomain(available_nodes * partitions_per_domain, 0),
-      numThreadsDomain(available_nodes * partitions_per_domain) {
+      firstThreadDomain(available_nodes, 0),
+      numThreadsDomain(available_nodes) {
   pcsr = new PPPCSR(init_num_nodes, init_num_nodes, lock_search, partitions_per_domain, use_numa);
 
-  int d = available_nodes * partitions_per_domain;
+  int d = available_nodes;
   int minNumThreads = NUM_OF_THREADS / d;
   int threshold = NUM_OF_THREADS % d;
   int counter = 0;
@@ -73,21 +73,21 @@ void ThreadPoolPPPCSR::execute(int thread_id) {
 
 // Submit an update for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
-  auto par = pcsr->get_partiton(src);
+  auto par = pcsr->get_partiton(src) / partitions_per_domain;
   auto index = (indeces[par]++) % numThreadsDomain[par];
   tasks[firstThreadDomain[par] + index].push(task{true, false, src, target});
 }
 
 // Submit a delete edge task for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_delete(int thread_id, int src, int target) {
-  auto par = pcsr->get_partiton(src);
+  auto par = pcsr->get_partiton(src) / partitions_per_domain;
   auto index = (indeces[par]++) % numThreadsDomain[par];
   tasks[firstThreadDomain[par] + index].push(task{false, false, src, target});
 }
 
 // Submit a read neighbourhood task for vertex src to thread with number thread_id
 void ThreadPoolPPPCSR::submit_read(int thread_id, int src) {
-  auto par = pcsr->get_partiton(src);
+  auto par = pcsr->get_partiton(src) / partitions_per_domain;
   auto index = (indeces[par]++) % numThreadsDomain[par];
   tasks[firstThreadDomain[par] + index].push(task{false, true, src, src});
 }
