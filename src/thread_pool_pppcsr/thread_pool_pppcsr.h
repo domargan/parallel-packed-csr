@@ -35,6 +35,7 @@ class ThreadPoolPPPCSR {
   chrono::steady_clock::time_point end;
   std::atomic_bool finished;
 
+  template <bool isMasterThread>
   void execute(int);
 
   const int available_nodes;
