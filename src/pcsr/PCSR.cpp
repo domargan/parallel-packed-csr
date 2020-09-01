@@ -764,7 +764,7 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
 
 PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain)
     : is_numa_available{numa_available() >= 0 && domain >= 0}, domain(domain) {
-  edges.N = 2 << bsr_word(init_n);
+  edges.N = 2 << bsr_word(init_n + src_n);
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
   edges.global_lock = make_shared<HybridLock>();
@@ -780,17 +780,52 @@ PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain)
     edges.node_locks = (HybridLock **)malloc((edges.N / edges.logN) * sizeof(HybridLock *));
     edges.items = (edge_t *)malloc(edges.N * sizeof(*(edges.items)));
   }
-  for (int i = 0; i < edges.N; i++) {
-    edges.items[i].src = -1;
-    edges.items[i].value = 0;
-    edges.items[i].dest = 0;
-  }
+
   for (int i = 0; i < edges.N / edges.logN; i++) {
     edges.node_locks[i] = new HybridLock();
   }
 
+  nodes.resize(src_n);
+
+  double index_d = 0.0;
+  const double step = ((double)edges.N) / src_n;
+  int in = 0;
+
   for (int i = 0; i < src_n; i++) {
-    add_node();
+    if (i == 0) {
+      nodes[i].beginning = 0;
+    } else {
+      nodes[i].beginning = nodes[i - 1].end;
+    }
+    index_d += step;
+    in = static_cast<int>(index_d);
+    nodes[i].end = in;
+    nodes[i].num_neighbors = 0;
+  }
+  nodes[nodes.size() - 1].end = edges.N - 1;
+
+  index_d = 0.0;
+  in = 0;
+  int current = 0;
+
+  // evenly distribute for a uniform density
+  for (int i = 0; i < edges.N; i++) {
+    if (i == in && current < src_n) {
+      edges.items[i].src = current;
+      edges.items[i].dest = UINT32_MAX;  // placeholder
+      if (i == 0) {
+        edges.items[i].value = UINT32_MAX;
+      } else {
+        edges.items[i].value = current;  // back pointer
+      }
+      current++;
+      index_d += step;
+      in = static_cast<int>(index_d);
+    } else {
+      edges.items[i].src = -1;
+      edges.items[i].dest = 0;
+      edges.items[i].value = 0;
+    }
   }
 }
 
