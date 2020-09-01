@@ -50,13 +50,14 @@ ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, u
 // Function executed by worker threads
 // Does insertions, deletions and reads on the PCSR
 // Finishes when finished is set to true and there are no outstanding tasks
-void ThreadPoolPPPCSR::execute(int thread_id) {
+template <bool isMasterThread>
+void ThreadPoolPPPCSR::execute(const int thread_id) {
   cout << "Thread " << thread_id << " has " << tasks[thread_id].size() << " tasks, runs on domain "
        << threadToDomain[thread_id] << endl;
   if (numa_available() >= 0) {
     numa_run_on_node(threadToDomain[thread_id]);
   }
-  while (!finished || !tasks[thread_id].empty()) {
+  while (!tasks[thread_id].empty() || (!isMasterThread && !finished)) {
     if (!tasks[thread_id].empty()) {
       task t = tasks[thread_id].front();
       tasks[thread_id].pop();
@@ -98,8 +99,8 @@ void ThreadPoolPPPCSR::start(int threads) {
   s = chrono::steady_clock::now();
   finished = false;
 
-  for (int i = 0; i < threads; i++) {
-    thread_pool.push_back(thread(&ThreadPoolPPPCSR::execute, this, i));
+  for (int i = 1; i < threads; i++) {
+    thread_pool.push_back(thread(&ThreadPoolPPPCSR::execute<false>, this, i));
     // Pin thread to core
     //    cpu_set_t cpuset;
     //    CPU_ZERO(&cpuset);
@@ -115,6 +116,7 @@ void ThreadPoolPPPCSR::start(int threads) {
     //      cout << "error pinning thread" << endl;
     //    }
   }
+  execute<true>(0);
 }
 
 // Stops currently running worker threads without redistributing worker threads
