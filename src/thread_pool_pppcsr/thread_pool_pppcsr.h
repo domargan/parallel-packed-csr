@@ -40,6 +40,9 @@ class ThreadPoolPPPCSR {
   const int available_nodes;
   std::vector<unsigned> indeces;
   int partitions_per_domain = 1;
+  std::vector<int> threadToDomain;
+  std::vector<int> firstThreadDomain;
+  std::vector<int> numThreadsDomain;
 };
 
 #endif  // PPPCSR_THREAD_POOL_H
