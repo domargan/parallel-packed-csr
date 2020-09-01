@@ -824,7 +824,8 @@ bool PCSR::edge_exists(uint32_t src, uint32_t dest) {
   e.dest = dest;
   e.value = 1;
   uint32_t loc_to_rem = binary_search(&e, node.beginning + 1, node.end, false).first;
-  return !(is_null(e.value)) && !is_sentinel(e) && edges.items[loc_to_rem].dest == e.dest;
+  e = edges.items[loc_to_rem];
+  return !(is_null(e.value)) && !is_sentinel(e) && e.dest == dest;
 }
 
 // Used for debugging

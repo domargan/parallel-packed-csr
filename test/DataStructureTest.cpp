@@ -156,4 +156,4 @@ TEST_P(DataStructureTest, add_remove_edge_random_2E4_par) {
   EXPECT_TRUE(pcsr.edges.global_lock->lockable());
 }
 
-INSTANTIATE_TEST_CASE_P(asd, DataStructureTest, Bool());
+INSTANTIATE_TEST_CASE_P(DataStructureTestSuite, DataStructureTest, Bool());
