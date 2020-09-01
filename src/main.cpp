@@ -31,6 +31,7 @@ pair<vector<tuple<Operation, int, int>>, int> read_input(string filename, Operat
   string line;
   f.open(filename);
   if (!f.good()) {
+    std::cerr << "Invalid file" << std::endl;
     exit(EXIT_FAILURE);
   }
   vector<tuple<Operation, int, int>> edges;

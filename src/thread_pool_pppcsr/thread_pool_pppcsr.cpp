@@ -7,11 +7,8 @@
 
 #include <numa.h>
 
-#include <cmath>
-#include <ctime>
 #include <iostream>
 #include <mutex>
-#include <queue>
 #include <thread>
 #include <vector>
 
@@ -22,10 +19,32 @@ using namespace std;
  */
 ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes,
                                    int partitions_per_domain, bool use_numa)
-    : finished(false), available_nodes(numa_max_node() + 1), partitions_per_domain(partitions_per_domain) {
-  tasks.resize(NUM_OF_THREADS);
-  indeces.resize(available_nodes * partitions_per_domain, 0);
+    : tasks(NUM_OF_THREADS),
+      finished(false),
+      available_nodes(numa_max_node() + 1),
+      indeces(available_nodes, 0),
+      partitions_per_domain(partitions_per_domain),
+      threadToDomain(NUM_OF_THREADS),
+      firstThreadDomain(available_nodes, 0),
+      numThreadsDomain(available_nodes) {
   pcsr = new PPPCSR(init_num_nodes, init_num_nodes, lock_search, partitions_per_domain, use_numa);
+
+  int d = available_nodes;
+  int minNumThreads = NUM_OF_THREADS / d;
+  int threshold = NUM_OF_THREADS % d;
+  int counter = 0;
+  int currentDomain = 0;
+
+  for (int i = 0; i < NUM_OF_THREADS; i++) {
+    threadToDomain[i] = currentDomain;
+    counter++;
+    if (counter == minNumThreads + (currentDomain < threshold)) {
+      numThreadsDomain[currentDomain] = counter;
+      firstThreadDomain[currentDomain] = i - counter + 1;
+      counter = 0;
+      currentDomain++;
+    }
+  }
 }
 
 // Function executed by worker threads
@@ -33,9 +52,9 @@ ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, u
 // Finishes when finished is set to true and there are no outstanding tasks
 void ThreadPoolPPPCSR::execute(int thread_id) {
   cout << "Thread " << thread_id << " has " << tasks[thread_id].size() << " tasks, runs on domain "
-       << (thread_id) / std::max(1ul, tasks.size() / available_nodes) << endl;
+       << threadToDomain[thread_id] << endl;
   if (numa_available() >= 0) {
-    numa_run_on_node((thread_id) / std::max(1ul, tasks.size() / available_nodes));
+    numa_run_on_node(threadToDomain[thread_id]);
   }
   while (!finished || !tasks[thread_id].empty()) {
     if (!tasks[thread_id].empty()) {
@@ -54,23 +73,23 @@ void ThreadPoolPPPCSR::execute(int thread_id) {
 
 // Submit an update for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
-  auto par = pcsr->get_partiton(src);
-  auto index = (indeces[par]++) % (std::max(1ul, tasks.size() / available_nodes));
-  tasks[(par / partitions_per_domain) * (tasks.size() / available_nodes) + index].push(task{true, false, src, target});
+  auto par = pcsr->get_partiton(src) / partitions_per_domain;
+  auto index = (indeces[par]++) % numThreadsDomain[par];
+  tasks[firstThreadDomain[par] + index].push(task{true, false, src, target});
 }
 
 // Submit a delete edge task for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_delete(int thread_id, int src, int target) {
-  auto par = pcsr->get_partiton(src);
-  auto index = (indeces[par]++) % (std::max(1ul, tasks.size() / available_nodes));
-  tasks[(par / partitions_per_domain) * (tasks.size() / available_nodes) + index].push(task{false, false, src, target});
+  auto par = pcsr->get_partiton(src) / partitions_per_domain;
+  auto index = (indeces[par]++) % numThreadsDomain[par];
+  tasks[firstThreadDomain[par] + index].push(task{false, false, src, target});
 }
 
 // Submit a read neighbourhood task for vertex src to thread with number thread_id
 void ThreadPoolPPPCSR::submit_read(int thread_id, int src) {
-  auto par = pcsr->get_partiton(src);
-  auto index = (indeces[par]++) % (std::max(1ul, tasks.size() / available_nodes));
-  tasks[(par / partitions_per_domain) * (tasks.size() / available_nodes) + index].push(task{false, true, src, src});
+  auto par = pcsr->get_partiton(src) / partitions_per_domain;
+  auto index = (indeces[par]++) % numThreadsDomain[par];
+  tasks[firstThreadDomain[par] + index].push(task{false, true, src, src});
 }
 
 // starts a new number of threads
