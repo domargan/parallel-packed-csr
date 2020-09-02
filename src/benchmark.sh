@@ -22,14 +22,23 @@ BENCHMARK_CONFIG_FILE="$1"
 # REPETITIONS               -> number of times to repeat the benchmark; integer
 # CORES                     -> number of cores to utilise in the scaling benchmark; array of integers
 # NUMA_BOUNDS               -> number of cores that mark end of NUMA domain boundaries; array of integers
+# PARTITIONS_PER_DOMAIN     -> number of partitions per NUMA domain; array of integers
 # SIZE                      -> number of edges that will be read from the update file; integer
 
 source $BENCHMARK_CONFIG_FILE
-if [ ! -f "$PPCSR_EXEC" ] ||
-	 [ ! -f "$PPCSR_CORE_GRAPH_FILE" ] ||
-	 [ ! -f "$PPCSR_INSERTIONS_FILE" ] ||
+if [ ! -f "$PPCSR_EXEC" ]; then
+  echo -e "Executable not found.\n"
+  exit 0
+fi
+
+if [ ! -f "$PPCSR_CORE_GRAPH_FILE" ]; then
+  echo -e "Core graph not found.\n"
+  exit 0
+fi
+
+if [ ! -f "$PPCSR_INSERTIONS_FILE" ] ||
 	 [ ! -f "$PPCSR_DELETIONS_FILE" ]; then
-  echo -e "All required input data files are not found.\n"
+  echo -e "Update files not found.\n"
   exit 0
 fi
 
@@ -58,6 +67,7 @@ echo "Edge deletions file: $PPCSR_DELETIONS_FILE"
 echo "Repetitions: $REPETITIONS"
 echo "#cores: ${CORES[*]}"
 echo "NUMA domain boundaries: ${NUMA_BOUNDS[*]}"
+echo "#partitions per NUMA domain: ${PARTITIONS_PER_DOMAIN[*]}"
 echo "Update batch size: $SIZE"
 echo -e "######################################\n"
 
@@ -73,12 +83,16 @@ function writeHeader() {
   done
   header="${header},$1_Avg"
 }
+
 writeHeader "INS_PPCSR"
 writeHeader "DEL_PPCSR"
-writeHeader "INS_PPPCSR"
-writeHeader "DEL_PPPCSR"
-writeHeader "INS_PPPCSR_NUMA"
-writeHeader "DEL_PPPCSR_NUMA"
+
+for p in ${PARTITIONS_PER_DOMAIN[@]}; do
+  writeHeader "INS_PPPCSR_${p}PAR"
+  writeHeader "DEL_PPPCSR_${p}PAR"
+  writeHeader "INS_PPPCSR_NUMA_${p}PAR"
+  writeHeader "DEL_PPPCSR_NUMA_${p}PAR"
+done
 
 echo "$header" >>$PPCSR_CSV_DATA
 
@@ -87,28 +101,37 @@ for core in ${CORES[@]}; do
   csv=""
   dat=""
   for v in -ppcsr -pppcsr -pppcsrnuma; do
-    insert=""
-    for ((r = 1; r <= REPETITIONS; r++)); do
-      echo -e "[START]\t ${v:1} edge insertions: Executing repetition #$r on $core cores..."
-      output=$($PPCSR_EXEC -threads=$core $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_INSERTIONS_FILE | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
-      echo -e "[END]  \t ${v:1} edge insertions: Finished repetition #$r on $core cores.\n"
-      insert="${insert},${output}"
-    done
-    avg_insert=$(echo "$insert" | awk '{l=split($0,a,","); s=0; for (i in a)s+=a[i]; print s/(l-1);}')
-    insert="${insert},${avg_insert}"
+    for p in ${PARTITIONS_PER_DOMAIN[@]}; do
+      if [ "$v" = "-ppcsr" ]; then
+        p=1
+      fi
+      insert=""
+      for ((r = 1; r <= REPETITIONS; r++)); do
+        echo -e "[START]\t ${v:1} edge insertions: Executing repetition #$r on $core cores..."
+        output=$($PPCSR_EXEC -threads=$core $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_INSERTIONS_FILE -partitions_per_domain=$p | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
+        echo -e "[END]  \t ${v:1} edge insertions: Finished repetition #$r on $core cores.\n"
+        insert="${insert},${output}"
+      done
+      avg_insert=$(echo "$insert" | awk '{l=split($0,a,","); s=0; for (i in a)s+=a[i]; print s/(l-1);}')
+      insert="${insert},${avg_insert}"
 
-    delete=""
-    for ((r = 1; r <= REPETITIONS; r++)); do
-      echo -e "[START]\t ${v:1} edge deletions: Executing repetition #$r on $core cores..."
-      output=$($PPCSR_EXEC -delete -threads=$core $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_DELETIONS_FILE | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
-      echo -e "[END]  \t ${v:1} edge deletions: Finished repetition #$r on $core cores.\n"
-      delete="${delete},${output}"
-    done
-    avg_delete=$(echo "$delete" | awk '{l=split($0,a,","); s=0; for (i in a)s+=a[i]; print s/(l-1);}')
-    delete="${delete},${avg_delete}"
+      delete=""
+      for ((r = 1; r <= REPETITIONS; r++)); do
+        echo -e "[START]\t ${v:1} edge deletions: Executing repetition #$r on $core cores..."
+        output=$($PPCSR_EXEC -delete -threads=$core $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_DELETIONS_FILE -partitions_per_domain=$p | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
+        echo -e "[END]  \t ${v:1} edge deletions: Finished repetition #$r on $core cores.\n"
+        delete="${delete},${output}"
+      done
+      avg_delete=$(echo "$delete" | awk '{l=split($0,a,","); s=0; for (i in a)s+=a[i]; print s/(l-1);}')
+      delete="${delete},${avg_delete}"
 
-    csv="${csv}${insert}${delete}"
-    dat="${dat}${avg_insert} ${avg_delete} "
+      csv="${csv}${insert}${delete}"
+      dat="${dat}${avg_insert} ${avg_delete} "
+
+      if [ "$v" = "-ppcsr" ]; then
+        break
+      fi
+    done
   done
 
   echo "$csv" | sed -e "s/^/$core/" >>$PPCSR_CSV_DATA
