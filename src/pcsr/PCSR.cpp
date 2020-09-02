@@ -580,17 +580,12 @@ void PCSR::insert(uint32_t index, edge_t elem, uint32_t src, insertion_info_t *i
 
 void PCSR::remove(uint32_t index, const edge_t &elem, uint32_t src) {
   int node_index = find_leaf(&edges, index);
-  // printf("node_index = %d\n", node_index);
   int level = edges.H;
   int len = edges.logN;
 
-  if (is_null(edges.items[index].value)) {
+  if (is_null(edges.items[index].value) || is_sentinel(elem) || edges.items[index].dest != elem.dest) {
     return;
   } else {
-    if (is_sentinel(elem) || edges.items[index].dest != elem.dest) {
-      return;
-    }
-
     edges.items[index].value = 0;
     edges.items[index].dest = 0;
   }
