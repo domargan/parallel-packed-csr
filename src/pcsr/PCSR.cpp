@@ -708,7 +708,6 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
   uint32_t first_node = get_node_id(find_leaf(&edges, beginning + 1));
   uint32_t last_node = get_node_id(find_leaf(&edges, end));
   uint32_t loc_to_rem;
-  node_t node = nodes[src];
   int ins_node_v;
   if (lock_bsearch) {
     for (uint32_t i = first_node; i <= last_node; i++) {
@@ -729,7 +728,7 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
       edges.node_locks[i]->unlock_shared();
     }
   } else {
-    pair<int, int> bs = binary_search(&e, node.beginning + 1, node.end, false);
+    pair<int, int> bs = binary_search(&e, nodes[src].beginning + 1, nodes[src].end, false);
     loc_to_rem = bs.first;
     ins_node_v = bs.second;
   }
@@ -748,7 +747,7 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
     release_locks_no_inc({0, edges.N / edges.logN - 1});
     edges.global_lock->unlock_shared();
     const std::lock_guard<HybridLock> lck(*edges.global_lock);
-    loc_to_rem = binary_search(&e, node.beginning + 1, node.end, false).first;
+    loc_to_rem = binary_search(&e, nodes[src].beginning + 1, nodes[src].end, false).first;
     remove(loc_to_rem, e, src);
   } else if (acquired_locks.first == NEED_RETRY) {
     // we need to re-start because when we acquired the locks things had changed
