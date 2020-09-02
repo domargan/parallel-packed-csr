@@ -151,11 +151,11 @@ class PCSR {
   void add_edge_parallel(uint32_t src, uint32_t dest, uint32_t value, int retries);
   void insert(uint32_t index, edge_t elem, uint32_t src, insertion_info_t *info);
   void remove(uint32_t index, const edge_t &elem, uint32_t src);
-  uint32_t get_node_id(uint32_t node_index);
+  uint32_t get_node_id(uint32_t node_index) const;
   void print_array();
   void print_graph(int);
   pair<double, int> redistr_store(edge_t *space, int index, int len);
-  void fix_sentinel(int32_t node_index, int in);
+  void fix_sentinel(const edge_t &sentinel, int in);
   pair<uint32_t, int> binary_search(edge_t *elem, uint32_t start, uint32_t end, bool unlock);
 
   /**

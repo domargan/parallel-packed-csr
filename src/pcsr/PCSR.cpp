@@ -160,11 +160,15 @@ pair_double density_bound(edge_list_t *list, int depth) {
 }
 
 // fix pointer from node to moved sentinel
-void PCSR::fix_sentinel(int32_t node_index, int in) {
-  nodes[node_index].beginning = in;
-  if (node_index > 0) {
+void PCSR::fix_sentinel(const edge_t &sentinel, int in) {
+  uint32_t node_index = sentinel.value;
+
+  if (node_index == UINT32_MAX) {
+    node_index = 0;
+  } else {
     nodes[node_index - 1].end = in;
   }
+  nodes[node_index].beginning = in;
   if (node_index == nodes.size() - 1) {
     nodes[node_index].end = edges.N - 1;
   }
@@ -198,11 +202,7 @@ void PCSR::redistribute(int index, int len) {
     edges.items[in] = space[i];
     if (is_sentinel(space[i])) {
       // fixing pointer of node that goes to this sentinel
-      uint32_t node_index = space[i].value;
-      if (node_index == UINT32_MAX) {
-        node_index = 0;
-      }
-      fix_sentinel(node_index, in);
+      fix_sentinel(space[i], in);
     }
     index_d += step;
   }
@@ -210,19 +210,21 @@ void PCSR::redistribute(int index, int len) {
 }
 
 void PCSR::double_list() {
-  int prev_locks_size = edges.N / edges.logN;
+  const int prev_locks_size = edges.N / edges.logN;
   edges.N *= 2;
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
+  const int new_locks_size = edges.N / edges.logN;
+
   // Added by Eleni Alevra - START
   if (is_numa_available) {
     edges.node_locks = (HybridLock **)numa_realloc(edges.node_locks, prev_locks_size * sizeof(HybridLock *),
-                                                   (edges.N / edges.logN) * sizeof(HybridLock *));
+                                                   new_locks_size * sizeof(HybridLock *));
     checkAllocation(edges.node_locks);
   } else {
-    edges.node_locks = (HybridLock **)realloc(edges.node_locks, (edges.N / edges.logN) * sizeof(HybridLock *));
+    edges.node_locks = (HybridLock **)realloc(edges.node_locks, new_locks_size * sizeof(HybridLock *));
   }
-  for (int i = prev_locks_size; i < edges.N / edges.logN; i++) {
+  for (int i = prev_locks_size; i < new_locks_size; i++) {
     edges.node_locks[i] = new HybridLock();
   }
   // Added by Eleni Alevra - END
@@ -243,10 +245,12 @@ void PCSR::double_list() {
 }
 
 void PCSR::half_list() {
-  int prev_locks_size = (edges.N / edges.logN);
+  const int prev_locks_size = edges.N / edges.logN;
   edges.N /= 2;
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
+  const int new_locks_size = edges.N / edges.logN;
+
   edge_t *new_array;
   if (is_numa_available) {
     new_array = (edge_t *)numa_alloc_onnode(edges.N * sizeof(*(edges.items)), domain);
@@ -267,18 +271,18 @@ void PCSR::half_list() {
     new_array[j].dest = 0;
   }
 
-  for (int i = (edges.N / edges.logN); i < prev_locks_size; i++) {
+  for (int i = new_locks_size; i < prev_locks_size; i++) {
     edges.node_locks[i]->unlock();
     delete edges.node_locks[i];
   }
 
   if (is_numa_available) {
     edges.node_locks = (HybridLock **)numa_realloc(edges.node_locks, prev_locks_size * sizeof(HybridLock *),
-                                                   (edges.N / edges.logN) * sizeof(HybridLock *));
+                                                   new_locks_size * sizeof(HybridLock *));
     checkAllocation(edges.node_locks);
     numa_free(edges.items, edges.N * 2 * sizeof(*(edges.items)));
   } else {
-    edges.node_locks = (HybridLock **)realloc(edges.node_locks, (edges.N / edges.logN) * sizeof(HybridLock *));
+    edges.node_locks = (HybridLock **)realloc(edges.node_locks, new_locks_size * sizeof(HybridLock *));
     free(edges.items);
   }
 
@@ -302,22 +306,14 @@ int PCSR::slide_right(int index, uint32_t src) {
     edges.items[index] = el;
     if (!is_null(el.value) && is_sentinel(el)) {
       // fixing pointer of node that goes to this sentinel
-      uint32_t node_index = el.value;
-      if (node_index == UINT32_MAX) {
-        node_index = 0;
-      }
-      fix_sentinel(node_index, index);
+      fix_sentinel(el, index);
     }
     el = temp;
     index++;
   }
   if (!is_null(el.value) && is_sentinel(el)) {
     // fixing pointer of node that goes to this sentinel
-    uint32_t node_index = el.value;
-    if (node_index == UINT32_MAX) {
-      node_index = 0;
-    }
-    fix_sentinel(node_index, index);
+    fix_sentinel(el, index);
   }
   if (index == edges.N) {
     index--;
@@ -344,12 +340,7 @@ void PCSR::slide_left(int index, uint32_t src) {
     edges.items[index] = el;
     if (!is_null(el.value) && is_sentinel(el)) {
       // fixing pointer of node that goes to this sentinel
-      uint32_t node_index = el.value;
-      if (node_index == UINT32_MAX) {
-        node_index = 0;
-      }
-
-      fix_sentinel(node_index, index);
+      fix_sentinel(el, index);
     }
     el = temp;
     index--;
@@ -363,11 +354,7 @@ void PCSR::slide_left(int index, uint32_t src) {
   }
   if (!is_null(el.value) && is_sentinel(el)) {
     // fixing pointer of node that goes to this sentinel
-    uint32_t node_index = el.value;
-    if (node_index == UINT32_MAX) {
-      node_index = 0;
-    }
-    fix_sentinel(node_index, index);
+    fix_sentinel(el, index);
   }
 
   edges.items[index] = el;
@@ -580,17 +567,12 @@ void PCSR::insert(uint32_t index, edge_t elem, uint32_t src, insertion_info_t *i
 
 void PCSR::remove(uint32_t index, const edge_t &elem, uint32_t src) {
   int node_index = find_leaf(&edges, index);
-  // printf("node_index = %d\n", node_index);
   int level = edges.H;
   int len = edges.logN;
 
-  if (is_null(edges.items[index].value)) {
+  if (is_null(edges.items[index].value) || is_sentinel(elem) || edges.items[index].dest != elem.dest) {
     return;
   } else {
-    if (is_sentinel(elem) || edges.items[index].dest != elem.dest) {
-      return;
-    }
-
     edges.items[index].value = 0;
     edges.items[index].dest = 0;
   }
@@ -708,7 +690,6 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
   uint32_t first_node = get_node_id(find_leaf(&edges, beginning + 1));
   uint32_t last_node = get_node_id(find_leaf(&edges, end));
   uint32_t loc_to_rem;
-  node_t node = nodes[src];
   int ins_node_v;
   if (lock_bsearch) {
     for (uint32_t i = first_node; i <= last_node; i++) {
@@ -729,7 +710,7 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
       edges.node_locks[i]->unlock_shared();
     }
   } else {
-    pair<int, int> bs = binary_search(&e, node.beginning + 1, node.end, false);
+    pair<int, int> bs = binary_search(&e, nodes[src].beginning + 1, nodes[src].end, false);
     loc_to_rem = bs.first;
     ins_node_v = bs.second;
   }
@@ -748,7 +729,7 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
     release_locks_no_inc({0, edges.N / edges.logN - 1});
     edges.global_lock->unlock_shared();
     const std::lock_guard<HybridLock> lck(*edges.global_lock);
-    loc_to_rem = binary_search(&e, node.beginning + 1, node.end, false).first;
+    loc_to_rem = binary_search(&e, nodes[src].beginning + 1, nodes[src].end, false).first;
     remove(loc_to_rem, e, src);
   } else if (acquired_locks.first == NEED_RETRY) {
     // we need to re-start because when we acquired the locks things had changed
@@ -763,7 +744,7 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
 }
 
 PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain)
-    : is_numa_available{numa_available() >= 0 && domain >= 0}, domain(domain) {
+    : nodes(src_n), is_numa_available{numa_available() >= 0 && domain >= 0}, domain(domain) {
   edges.N = 2 << bsr_word(init_n + src_n);
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
@@ -785,8 +766,6 @@ PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain)
     edges.node_locks[i] = new HybridLock();
   }
 
-  nodes.resize(src_n);
-
   double index_d = 0.0;
   const double step = ((double)edges.N) / src_n;
   int in = 0;
@@ -802,7 +781,9 @@ PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain)
     nodes[i].end = in;
     nodes[i].num_neighbors = 0;
   }
-  nodes[nodes.size() - 1].end = edges.N - 1;
+  if (src_n != 0) {
+    nodes[nodes.size() - 1].end = edges.N - 1;
+  }
 
   index_d = 0.0;
   in = 0;
@@ -909,7 +890,7 @@ vector<int> PCSR::get_neighbourhood(int src) const {
 // Get id of PCSR node (starting from 0)
 // e.g. if every PCSR node has 8 elements, index number 5 is in PCSR node 0, index number 8 is in PCSR node 1 etc.
 // Added by Eleni Alevra
-uint32_t PCSR::get_node_id(uint32_t node_index) { return node_index / edges.logN; }
+uint32_t PCSR::get_node_id(uint32_t node_index) const { return node_index / edges.logN; }
 
 // Release acquired locks and increment the version counters to notify any other thread that will acquire them
 // that a change has happened
