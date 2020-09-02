@@ -75,12 +75,16 @@ function writeHeader() {
   done
   header="${header},$1_Avg"
 }
+
 writeHeader "INS_PPCSR"
 writeHeader "DEL_PPCSR"
-writeHeader "INS_PPPCSR"
-writeHeader "DEL_PPPCSR"
-writeHeader "INS_PPPCSR_NUMA"
-writeHeader "DEL_PPPCSR_NUMA"
+
+for p in ${PARTITIONS_PER_DOMAIN[@]}; do
+  writeHeader "INS_PPPCSR_${p}PAR"
+  writeHeader "DEL_PPPCSR_${p}PAR"
+  writeHeader "INS_PPPCSR_NUMA_${p}PAR"
+  writeHeader "DEL_PPPCSR_NUMA_${p}PAR"
+done
 
 echo "$header" >>$PPCSR_CSV_DATA
 
