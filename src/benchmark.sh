@@ -26,11 +26,19 @@ BENCHMARK_CONFIG_FILE="$1"
 # SIZE                      -> number of edges that will be read from the update file; integer
 
 source $BENCHMARK_CONFIG_FILE
-if [ ! -f "$PPCSR_EXEC" ] ||
-	 [ ! -f "$PPCSR_CORE_GRAPH_FILE" ] ||
-	 [ ! -f "$PPCSR_INSERTIONS_FILE" ] ||
+if [ ! -f "$PPCSR_EXEC" ]; then
+  echo -e "Executable not found.\n"
+  exit 0
+fi
+
+if [ ! -f "$PPCSR_CORE_GRAPH_FILE" ]; then
+  echo -e "Core graph not found.\n"
+  exit 0
+fi
+
+if [ ! -f "$PPCSR_INSERTIONS_FILE" ] ||
 	 [ ! -f "$PPCSR_DELETIONS_FILE" ]; then
-  echo -e "All required input data files are not found.\n"
+  echo -e "Update files not found.\n"
   exit 0
 fi
 
