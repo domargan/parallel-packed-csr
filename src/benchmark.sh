@@ -44,10 +44,15 @@ fi
 
 # Define output files
 TIME=$(date +%Y%m%d_%H%M%S)
-PPCSR_BENCHMARK_LOG="${MACHINE_NAME}_strong_scaling_log_${TIME}.txt"
-PPCSR_CSV_DATA="${MACHINE_NAME}_strong_scaling_${TIME}.csv"
-PPCSR_PLOT_DATA="${MACHINE_NAME}_strong_scaling_${TIME}.dat"
-PPCSR_PDF_PLOT_FILE="${MACHINE_NAME}_strong_scaling_${TIME}"
+PPCSR_BASE_NAME="${MACHINE_NAME}_${TIME}_ppcsr_scalability"
+PPCSR_BENCHMARK_OUTPUTS_DIR="${PPCSR_BASE_NAME}_bench_outputs"
+PPCSR_PROGRAM_OUTPUTS_DIR="${PPCSR_BENCHMARK_OUTPUTS_DIR}/program_outputs"
+PPCSR_BENCHMARK_LOG="${PPCSR_BENCHMARK_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_script_log.txt"
+PPCSR_CSV_DATA="${PPCSR_BENCHMARK_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_all_results.csv"
+PPCSR_PLOT_DATA="${PPCSR_BENCHMARK_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_plot_data.dat"
+PPCSR_PDF_PLOT_FILE="${PPCSR_BASE_NAME}_plot"
+
+mkdir $PPCSR_BENCHMARK_OUTPUTS_DIR $PPCSR_PROGRAM_OUTPUTS_DIR
 
 # Write everyting to log file
 : > $PPCSR_BENCHMARK_LOG
@@ -108,7 +113,7 @@ for core in ${CORES[@]}; do
       insert=""
       for ((r = 1; r <= REPETITIONS; r++)); do
         echo -e "[START]\t ${v:1} edge insertions: Executing repetition #$r on $core cores..."
-        output=$($PPCSR_EXEC -threads=$core $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_INSERTIONS_FILE -partitions_per_domain=$p | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
+        output=$($PPCSR_EXEC -threads=$core $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_INSERTIONS_FILE -partitions_per_domain=$p | tee "${PPCSR_PROGRAM_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_insertions_${v:1}_${core}cores_${p}par_${r}.txt" | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
         echo -e "[END]  \t ${v:1} edge insertions: Finished repetition #$r on $core cores.\n"
         insert="${insert},${output}"
       done
@@ -118,7 +123,7 @@ for core in ${CORES[@]}; do
       delete=""
       for ((r = 1; r <= REPETITIONS; r++)); do
         echo -e "[START]\t ${v:1} edge deletions: Executing repetition #$r on $core cores..."
-        output=$($PPCSR_EXEC -delete -threads=$core $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_DELETIONS_FILE -partitions_per_domain=$p | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
+        output=$($PPCSR_EXEC -delete -threads=$core $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_DELETIONS_FILE -partitions_per_domain=$p | tee "${PPCSR_PROGRAM_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_deletions_${v:1}_${core}cores_${p}par_${r}.txt" | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
         echo -e "[END]  \t ${v:1} edge deletions: Finished repetition #$r on $core cores.\n"
         delete="${delete},${output}"
       done
