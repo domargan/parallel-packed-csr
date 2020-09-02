@@ -160,11 +160,15 @@ pair_double density_bound(edge_list_t *list, int depth) {
 }
 
 // fix pointer from node to moved sentinel
-void PCSR::fix_sentinel(int32_t node_index, int in) {
-  nodes[node_index].beginning = in;
-  if (node_index > 0) {
+void PCSR::fix_sentinel(const edge_t &sentinel, int in) {
+  uint32_t node_index = sentinel.value;
+
+  if (node_index == UINT32_MAX) {
+    node_index = 0;
+  } else {
     nodes[node_index - 1].end = in;
   }
+  nodes[node_index].beginning = in;
   if (node_index == nodes.size() - 1) {
     nodes[node_index].end = edges.N - 1;
   }
@@ -198,11 +202,7 @@ void PCSR::redistribute(int index, int len) {
     edges.items[in] = space[i];
     if (is_sentinel(space[i])) {
       // fixing pointer of node that goes to this sentinel
-      uint32_t node_index = space[i].value;
-      if (node_index == UINT32_MAX) {
-        node_index = 0;
-      }
-      fix_sentinel(node_index, in);
+      fix_sentinel(space[i], in);
     }
     index_d += step;
   }
@@ -302,22 +302,14 @@ int PCSR::slide_right(int index, uint32_t src) {
     edges.items[index] = el;
     if (!is_null(el.value) && is_sentinel(el)) {
       // fixing pointer of node that goes to this sentinel
-      uint32_t node_index = el.value;
-      if (node_index == UINT32_MAX) {
-        node_index = 0;
-      }
-      fix_sentinel(node_index, index);
+      fix_sentinel(el, index);
     }
     el = temp;
     index++;
   }
   if (!is_null(el.value) && is_sentinel(el)) {
     // fixing pointer of node that goes to this sentinel
-    uint32_t node_index = el.value;
-    if (node_index == UINT32_MAX) {
-      node_index = 0;
-    }
-    fix_sentinel(node_index, index);
+    fix_sentinel(el, index);
   }
   if (index == edges.N) {
     index--;
@@ -344,12 +336,7 @@ void PCSR::slide_left(int index, uint32_t src) {
     edges.items[index] = el;
     if (!is_null(el.value) && is_sentinel(el)) {
       // fixing pointer of node that goes to this sentinel
-      uint32_t node_index = el.value;
-      if (node_index == UINT32_MAX) {
-        node_index = 0;
-      }
-
-      fix_sentinel(node_index, index);
+      fix_sentinel(el, index);
     }
     el = temp;
     index--;
@@ -363,11 +350,7 @@ void PCSR::slide_left(int index, uint32_t src) {
   }
   if (!is_null(el.value) && is_sentinel(el)) {
     // fixing pointer of node that goes to this sentinel
-    uint32_t node_index = el.value;
-    if (node_index == UINT32_MAX) {
-      node_index = 0;
-    }
-    fix_sentinel(node_index, index);
+    fix_sentinel(el, index);
   }
 
   edges.items[index] = el;

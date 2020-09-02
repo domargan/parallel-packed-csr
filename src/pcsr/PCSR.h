@@ -155,7 +155,7 @@ class PCSR {
   void print_array();
   void print_graph(int);
   pair<double, int> redistr_store(edge_t *space, int index, int len);
-  void fix_sentinel(int32_t node_index, int in);
+  void fix_sentinel(const edge_t &sentinel, int in);
   pair<uint32_t, int> binary_search(edge_t *elem, uint32_t start, uint32_t end, bool unlock);
 
   /**
