@@ -210,19 +210,21 @@ void PCSR::redistribute(int index, int len) {
 }
 
 void PCSR::double_list() {
-  int prev_locks_size = edges.N / edges.logN;
+  const int prev_locks_size = edges.N / edges.logN;
   edges.N *= 2;
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
+  const int new_locks_size = edges.N / edges.logN;
+
   // Added by Eleni Alevra - START
   if (is_numa_available) {
     edges.node_locks = (HybridLock **)numa_realloc(edges.node_locks, prev_locks_size * sizeof(HybridLock *),
-                                                   (edges.N / edges.logN) * sizeof(HybridLock *));
+                                                   new_locks_size * sizeof(HybridLock *));
     checkAllocation(edges.node_locks);
   } else {
-    edges.node_locks = (HybridLock **)realloc(edges.node_locks, (edges.N / edges.logN) * sizeof(HybridLock *));
+    edges.node_locks = (HybridLock **)realloc(edges.node_locks, new_locks_size * sizeof(HybridLock *));
   }
-  for (int i = prev_locks_size; i < edges.N / edges.logN; i++) {
+  for (int i = prev_locks_size; i < new_locks_size; i++) {
     edges.node_locks[i] = new HybridLock();
   }
   // Added by Eleni Alevra - END
@@ -243,10 +245,12 @@ void PCSR::double_list() {
 }
 
 void PCSR::half_list() {
-  int prev_locks_size = (edges.N / edges.logN);
+  const int prev_locks_size = edges.N / edges.logN;
   edges.N /= 2;
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
+  const int new_locks_size = edges.N / edges.logN;
+
   edge_t *new_array;
   if (is_numa_available) {
     new_array = (edge_t *)numa_alloc_onnode(edges.N * sizeof(*(edges.items)), domain);
@@ -267,18 +271,18 @@ void PCSR::half_list() {
     new_array[j].dest = 0;
   }
 
-  for (int i = (edges.N / edges.logN); i < prev_locks_size; i++) {
+  for (int i = new_locks_size; i < prev_locks_size; i++) {
     edges.node_locks[i]->unlock();
     delete edges.node_locks[i];
   }
 
   if (is_numa_available) {
     edges.node_locks = (HybridLock **)numa_realloc(edges.node_locks, prev_locks_size * sizeof(HybridLock *),
-                                                   (edges.N / edges.logN) * sizeof(HybridLock *));
+                                                   new_locks_size * sizeof(HybridLock *));
     checkAllocation(edges.node_locks);
     numa_free(edges.items, edges.N * 2 * sizeof(*(edges.items)));
   } else {
-    edges.node_locks = (HybridLock **)realloc(edges.node_locks, (edges.N / edges.logN) * sizeof(HybridLock *));
+    edges.node_locks = (HybridLock **)realloc(edges.node_locks, new_locks_size * sizeof(HybridLock *));
     free(edges.items);
   }
 
