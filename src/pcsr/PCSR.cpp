@@ -762,7 +762,7 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
 }
 
 PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain)
-    : is_numa_available{numa_available() >= 0 && domain >= 0}, domain(domain) {
+    : nodes(src_n), is_numa_available{numa_available() >= 0 && domain >= 0}, domain(domain) {
   edges.N = 2 << bsr_word(init_n + src_n);
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
@@ -784,8 +784,6 @@ PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain)
     edges.node_locks[i] = new HybridLock();
   }
 
-  nodes.resize(src_n);
-
   double index_d = 0.0;
   const double step = ((double)edges.N) / src_n;
   int in = 0;
@@ -801,7 +799,9 @@ PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain)
     nodes[i].end = in;
     nodes[i].num_neighbors = 0;
   }
-  nodes[nodes.size() - 1].end = edges.N - 1;
+  if (src_n != 0) {
+    nodes[nodes.size() - 1].end = edges.N - 1;
+  }
 
   index_d = 0.0;
   in = 0;
