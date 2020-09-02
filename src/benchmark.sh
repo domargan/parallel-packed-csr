@@ -59,6 +59,7 @@ echo "Edge deletions file: $PPCSR_DELETIONS_FILE"
 echo "Repetitions: $REPETITIONS"
 echo "#cores: ${CORES[*]}"
 echo "NUMA domain boundaries: ${NUMA_BOUNDS[*]}"
+echo "#partitions per NUMA domain: ${PARTITIONS_PER_DOMAIN[*]}"
 echo "Update batch size: $SIZE"
 echo -e "######################################\n"
 
