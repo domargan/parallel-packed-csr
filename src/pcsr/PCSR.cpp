@@ -908,7 +908,7 @@ vector<int> PCSR::get_neighbourhood(int src) const {
 // Get id of PCSR node (starting from 0)
 // e.g. if every PCSR node has 8 elements, index number 5 is in PCSR node 0, index number 8 is in PCSR node 1 etc.
 // Added by Eleni Alevra
-uint32_t PCSR::get_node_id(uint32_t node_index) { return node_index / edges.logN; }
+uint32_t PCSR::get_node_id(uint32_t node_index) const { return node_index / edges.logN; }
 
 // Release acquired locks and increment the version counters to notify any other thread that will acquire them
 // that a change has happened
