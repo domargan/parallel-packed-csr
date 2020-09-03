@@ -57,10 +57,22 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
   if (numa_available() >= 0) {
     numa_run_on_node(threadToDomain[thread_id]);
   }
+  int registered = -1;
+
   while (!tasks[thread_id].empty() || (!isMasterThread && !finished)) {
     if (!tasks[thread_id].empty()) {
       task t = tasks[thread_id].front();
       tasks[thread_id].pop();
+
+      int currentPar = pcsr->get_partiton(t.src);
+
+      if (registered != currentPar) {
+        if (registered != -1) {
+          pcsr->unregisterThread(registered);
+        }
+        pcsr->registerThread(currentPar);
+        registered = currentPar;
+      }
       if (t.add) {
         pcsr->add_edge(t.src, t.target, 1);
       } else if (!t.read) {
@@ -68,7 +80,15 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
       } else {
         pcsr->read_neighbourhood(t.src);
       }
+    } else {
+      if (registered != -1) {
+        pcsr->unregisterThread(registered);
+        registered = -1;
+      }
     }
+  }
+  if (registered != -1) {
+    pcsr->unregisterThread(registered);
   }
 }
 

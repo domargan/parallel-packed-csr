@@ -45,6 +45,10 @@ class PPPCSR {
    */
   const node_t &getNode(int id) const;
 
+  void registerThread(int par) { partitions[par].edges.global_lock->registerThread(); }
+
+  void unregisterThread(int par) { partitions[par].edges.global_lock->unregisterThread(); }
+
  private:
   /// different partitions
   std::vector<PCSR> partitions;
