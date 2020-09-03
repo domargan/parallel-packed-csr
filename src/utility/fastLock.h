@@ -12,8 +12,10 @@
 #include <thread>
 
 class FastLock {
+  using lock_type = std::shared_timed_mutex;
+
  public:
-  FastLock() : lockRequested{false}, thread_counter{0}, arrived_threads{0} { std::cout << "Lock init\n"; }
+  FastLock() : lockRequested{false}, thread_counter{0}, arrived_threads{0} {}
 
   ~FastLock() = default;
 
@@ -40,30 +42,23 @@ class FastLock {
 
   void unregisterThread() { thread_counter.fetch_sub(1); }
 
-  inline void lock_shared() {
+  void lock_shared() {
     if (lockRequested) {
       arrived_threads.fetch_add(1);
-      mtx.lock_shared();
+      std::shared_lock<lock_type> lck(mtx);
       arrived_threads.fetch_sub(1);
-      mtx.unlock_shared();
     }
   }
 
-  inline void unlock_shared() {
-    if (lockRequested) {
-      arrived_threads.fetch_add(1);
-      mtx.lock_shared();
-      mtx.unlock_shared();
-    }
-  }
+  void unlock_shared() { lock_shared(); }
 
   bool lockable() { return true; }
 
  private:
-  std::shared_timed_mutex mtx;
+  lock_type mtx;
   std::atomic<bool> lockRequested;
-  std::atomic<int> thread_counter;
-  std::atomic<int> arrived_threads;
+  std::atomic<unsigned int> thread_counter;
+  std::atomic<unsigned int> arrived_threads;
 };
 
 #endif  // PARALLEL_PACKED_CSR_FASTLOCK_H
