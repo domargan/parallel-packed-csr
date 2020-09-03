@@ -112,24 +112,34 @@ for core in ${CORES[@]}; do
       fi
       insert=""
       for ((r = 1; r <= REPETITIONS; r++)); do
-        echo -e "[START]\t ${v:1} edge insertions: Executing repetition #$r on $core cores..."
+        echo -e "[START]\t ${v:1} edge insertions: Executing repetition #$r on $core cores for $p partitions per NUMA domain......"
         output=$($PPCSR_EXEC -threads=$core $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_INSERTIONS_FILE -partitions_per_domain=$p | tee "${PPCSR_PROGRAM_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_insertions_${v:1}_${core}cores_${p}par_${r}.txt" | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
         echo -e "[END]  \t ${v:1} edge insertions: Finished repetition #$r on $core cores.\n"
         insert="${insert} ${output}"
       done
 
-      read avg_insert stddev_insert <<<$(echo "$insert" | awk '{ A=0; V=0; for(N=1; N<=NF; N++) A+=$N ; A/=NF ; for(N=1; N<=NF; N++) V+=(($N-A)*($N-A))/(NF-1); print A,sqrt(V) }')
+      if [ "$REPETITIONS" -gt 1 ]; then
+        read avg_insert stddev_insert <<<$(echo "$insert" | awk '{ A=0; V=0; for(N=1; N<=NF; N++) A+=$N ; A/=NF ; for(N=1; N<=NF; N++) V+=(($N-A)*($N-A))/(NF-1); print A,sqrt(V) }')
+      else
+        avg_insert=$insert
+        stddev_insert=0
+      fi
       insert="${insert} ${avg_insert} ${stddev_insert}"
 
       delete=""
       for ((r = 1; r <= REPETITIONS; r++)); do
-        echo -e "[START]\t ${v:1} edge deletions: Executing repetition #$r on $core cores..."
+        echo -e "[START]\t ${v:1} edge deletions: Executing repetition #$r on $core cores for $p partitions per NUMA domain......"
         output=$($PPCSR_EXEC -delete -threads=$core $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_DELETIONS_FILE -partitions_per_domain=$p | tee "${PPCSR_PROGRAM_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_deletions_${v:1}_${core}cores_${p}par_${r}.txt" | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
         echo -e "[END]  \t ${v:1} edge deletions: Finished repetition #$r on $core cores.\n"
         delete="${delete} ${output}"
       done
 
-      read avg_delete stddev_delete <<<$(echo "$delete" | awk '{ A=0; V=0; for(N=1; N<=NF; N++) A+=$N ; A/=NF ; for(N=1; N<=NF; N++) V+=(($N-A)*($N-A))/(NF-1); print A,sqrt(V) }')
+      if [ "$REPETITIONS" -gt 1 ]; then
+        read avg_delete stddev_delete <<<$(echo "$delete" | awk '{ A=0; V=0; for(N=1; N<=NF; N++) A+=$N ; A/=NF ; for(N=1; N<=NF; N++) V+=(($N-A)*($N-A))/(NF-1); print A,sqrt(V) }')
+      else
+        avg_delete=$delete
+        stddev_delete=0
+      fi
       delete="${delete} ${avg_delete} ${stddev_delete}"
 
       csv="${csv}${insert} ${delete}"
