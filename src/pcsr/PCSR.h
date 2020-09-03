@@ -3,6 +3,8 @@
  * modified by Christian Menges
  */
 
+#include <fastLock.h>
+
 #include <atomic>
 #include <vector>
 
@@ -36,7 +38,7 @@ typedef struct edge_list {
   int N;
   int H;
   int logN;
-  shared_ptr<HybridLock> global_lock;
+  shared_ptr<FastLock> global_lock;
   HybridLock **node_locks;  // locks for every PCSR leaf node
   edge_t *items;
 } edge_list_t;

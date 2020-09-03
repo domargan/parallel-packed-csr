@@ -728,7 +728,7 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
     // release all node locks
     release_locks_no_inc({0, edges.N / edges.logN - 1});
     edges.global_lock->unlock_shared();
-    const std::lock_guard<HybridLock> lck(*edges.global_lock);
+    const std::lock_guard<FastLock> lck(*edges.global_lock);
     loc_to_rem = binary_search(&e, nodes[src].beginning + 1, nodes[src].end, false).first;
     remove(loc_to_rem, e, src);
   } else if (acquired_locks.first == NEED_RETRY) {
@@ -748,7 +748,7 @@ PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain)
   edges.N = 2 << bsr_word(init_n + src_n);
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
-  edges.global_lock = make_shared<HybridLock>();
+  edges.global_lock = make_shared<FastLock>();
 
   lock_bsearch = lock_search;
   if (is_numa_available) {
@@ -1242,7 +1242,7 @@ PCSR::PCSR(uint32_t init_n, vector<condition_variable *> *cvs, bool lock_search,
   edges.N = 2 << bsr_word(init_n);
   edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
   edges.H = bsr_word(edges.N / edges.logN);
-  edges.global_lock = make_shared<HybridLock>();
+  edges.global_lock = make_shared<FastLock>();
 
   this->redistr_mutex = new mutex;
   this->redistr_cv = new condition_variable;
@@ -1356,7 +1356,7 @@ void PCSR::add_edge_parallel(uint32_t src, uint32_t dest, uint32_t value, int re
     e.dest = dest;
     e.value = value;
     if (retries > 3) {
-      const std::lock_guard<HybridLock> lck(*edges.global_lock);
+      const std::lock_guard<FastLock> lck(*edges.global_lock);
       nodes[src].num_neighbors++;
       int pos = binary_search(&e, nodes[src].beginning + 1, nodes[src].end, false).first;
       insert(pos, e, src, nullptr);
@@ -1410,7 +1410,7 @@ void PCSR::add_edge_parallel(uint32_t src, uint32_t dest, uint32_t value, int re
     }
     if (acquired_locks.first.first == NEED_GLOBAL_WRITE) {
       edges.global_lock->unlock_shared();
-      const std::lock_guard<HybridLock> lck(*edges.global_lock);
+      const std::lock_guard<FastLock> lck(*edges.global_lock);
       loc_to_add = binary_search(&e, nodes[src].beginning + 1, nodes[src].end, false).first;
       insert(loc_to_add, e, src, acquired_locks.second);
     } else {
