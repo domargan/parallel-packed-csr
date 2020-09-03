@@ -50,7 +50,7 @@ PPCSR_PROGRAM_OUTPUTS_DIR="${PPCSR_BENCHMARK_OUTPUTS_DIR}/program_outputs"
 PPCSR_BENCHMARK_LOG="${PPCSR_BENCHMARK_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_script_log.txt"
 PPCSR_CSV_DATA="${PPCSR_BENCHMARK_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_all_results.csv"
 PPCSR_PLOT_DATA="${PPCSR_BENCHMARK_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_plot_data.dat"
-PPCSR_PDF_PLOT_FILE="${PPCSR_BASE_NAME}_plot"
+PPCSR_PDF_PLOT_FILE="${PPCSR_BENCHMARK_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_plot"
 
 mkdir $PPCSR_BENCHMARK_OUTPUTS_DIR $PPCSR_PROGRAM_OUTPUTS_DIR
 
@@ -84,9 +84,9 @@ echo -e "[START]\t Starting computations...\n"
 header="#CORES"
 function writeHeader() {
   for ((r = 0; r < REPETITIONS; r++)); do
-    header="${header},$1${r}"
+    header="${header} $1${r}"
   done
-  header="${header},$1_Avg"
+  header="${header} $1_Avg $1_Stddev"
 }
 
 writeHeader "INS_PPCSR"
@@ -115,23 +115,25 @@ for core in ${CORES[@]}; do
         echo -e "[START]\t ${v:1} edge insertions: Executing repetition #$r on $core cores..."
         output=$($PPCSR_EXEC -threads=$core $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_INSERTIONS_FILE -partitions_per_domain=$p | tee "${PPCSR_PROGRAM_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_insertions_${v:1}_${core}cores_${p}par_${r}.txt" | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
         echo -e "[END]  \t ${v:1} edge insertions: Finished repetition #$r on $core cores.\n"
-        insert="${insert},${output}"
+        insert="${insert} ${output}"
       done
-      avg_insert=$(echo "$insert" | awk '{l=split($0,a,","); s=0; for (i in a)s+=a[i]; print s/(l-1);}')
-      insert="${insert},${avg_insert}"
+
+      read avg_insert stddev_insert <<<$(echo "$insert" | awk '{ A=0; V=0; for(N=1; N<=NF; N++) A+=$N ; A/=NF ; for(N=1; N<=NF; N++) V+=(($N-A)*($N-A))/(NF-1); print A,sqrt(V) }')
+      insert="${insert} ${avg_insert} ${stddev_insert}"
 
       delete=""
       for ((r = 1; r <= REPETITIONS; r++)); do
         echo -e "[START]\t ${v:1} edge deletions: Executing repetition #$r on $core cores..."
         output=$($PPCSR_EXEC -delete -threads=$core $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_DELETIONS_FILE -partitions_per_domain=$p | tee "${PPCSR_PROGRAM_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_deletions_${v:1}_${core}cores_${p}par_${r}.txt" | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
         echo -e "[END]  \t ${v:1} edge deletions: Finished repetition #$r on $core cores.\n"
-        delete="${delete},${output}"
+        delete="${delete} ${output}"
       done
-      avg_delete=$(echo "$delete" | awk '{l=split($0,a,","); s=0; for (i in a)s+=a[i]; print s/(l-1);}')
-      delete="${delete},${avg_delete}"
 
-      csv="${csv}${insert}${delete}"
-      dat="${dat}${avg_insert} ${avg_delete} "
+      read avg_delete stddev_delete <<<$(echo "$delete" | awk '{ A=0; V=0; for(N=1; N<=NF; N++) A+=$N ; A/=NF ; for(N=1; N<=NF; N++) V+=(($N-A)*($N-A))/(NF-1); print A,sqrt(V) }')
+      delete="${delete} ${avg_delete} ${stddev_delete}"
+
+      csv="${csv}${insert} ${delete}"
+      dat="${dat}${avg_insert} ${avg_delete} ${stddev_insert} ${stddev_delete} "
 
       if [ "$v" = "-ppcsr" ]; then
         break
@@ -154,7 +156,7 @@ echo -e "[START]\t Starting data plotting...\n"
 PPCSR_PLOT_FILE=$(mktemp gnuplot.pXXX)
 
 XLABEL="#cores"
-YLABEL="CPU time (ms)"
+YLABEL="CPU time (s)"
 
 cat <<EOF >$PPCSR_PLOT_FILE
 set term pdf font ", 12"
@@ -196,7 +198,13 @@ plot \
 	"$PPCSR_PLOT_DATA" using 1:4 title 'insertions par' with linespoint ls 3, \
 	"$PPCSR_PLOT_DATA" using 1:5 title 'deletions par' with linespoint ls 4, \
 	"$PPCSR_PLOT_DATA" using 1:6 title 'insertions numa' with linespoint ls 5, \
-	"$PPCSR_PLOT_DATA" using 1:7 title 'deletions numa' with linespoint ls 6
+	"$PPCSR_PLOT_DATA" using 1:7 title 'deletions numa' with linespoint ls 6, \
+	"$PPCSR_PLOT_DATA" using 1:2:8 title '' with yerrorbars ls 1, \
+	"$PPCSR_PLOT_DATA" using 1:3:9 title '' with yerrorbars ls 2, \
+	"$PPCSR_PLOT_DATA" using 1:4:10 title '' with yerrorbars ls 3, \
+	"$PPCSR_PLOT_DATA" using 1:5:11 title '' with yerrorbars ls 4, \
+	"$PPCSR_PLOT_DATA" using 1:6:12 title '' with yerrorbars ls 5, \
+	"$PPCSR_PLOT_DATA" using 1:7:13 title '' with yerrorbars ls 6
 EOF
 
 gnuplot $PPCSR_PLOT_FILE
