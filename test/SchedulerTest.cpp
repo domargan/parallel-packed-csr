@@ -32,7 +32,8 @@ TEST_F(SchedulerTest, lookupTableCreation) {
       }
 
       ASSERT_EQ(std::accumulate(numThreadsDomain.cbegin(),
-                                numThreadsDomain.cend(), 0), t);
+                                numThreadsDomain.cend(), 0),
+                t);
       ASSERT_EQ(firstThreadDomain.size(), d);
       ASSERT_EQ(firstThreadDomain[0], 0);
       std::set<int> domains;

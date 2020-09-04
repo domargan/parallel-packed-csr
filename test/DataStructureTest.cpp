@@ -79,10 +79,15 @@ TEST_P(DataStructureTest, add_remove_edge_1E4_seq) {
 TEST_P(DataStructureTest, add_remove_edge_1E5_par) {
   PCSR pcsr(10, 10, GetParam(), 0);
   constexpr int edge_count = 1E5;
-#pragma omp parallel for
-  for (int i = 1; i < edge_count + 1; ++i) {
-    pcsr.add_edge(0, i, i);
-    EXPECT_TRUE(pcsr.edge_exists(0, i)) << i;
+#pragma omp parallel
+  {
+    pcsr.edges.global_lock->registerThread();
+#pragma omp for nowait
+    for (int i = 1; i < edge_count + 1; ++i) {
+      pcsr.add_edge(0, i, i);
+      EXPECT_TRUE(pcsr.edge_exists(0, i)) << i;
+    }
+    pcsr.edges.global_lock->unregisterThread();
   }
 
   // Check whether all locks were released
@@ -93,10 +98,15 @@ TEST_P(DataStructureTest, add_remove_edge_1E5_par) {
   EXPECT_EQ(pcsr.get_n(), 10);
   EXPECT_EQ(pcsr.getNode(0).num_neighbors, edge_count);
 
-#pragma omp parallel for
-  for (int i = 1; i < edge_count + 1; ++i) {
-    pcsr.remove_edge(0, i);
-    EXPECT_FALSE(pcsr.edge_exists(0, i)) << i;
+#pragma omp parallel
+  {
+    pcsr.edges.global_lock->registerThread();
+#pragma omp for nowait
+    for (int i = 1; i < edge_count + 1; ++i) {
+      pcsr.remove_edge(0, i);
+      EXPECT_FALSE(pcsr.edge_exists(0, i)) << i;
+    }
+    pcsr.edges.global_lock->unregisterThread();
   }
   // Check whether all locks were released
   for (int j = 0; j < pcsr.edges.N / pcsr.edges.logN; ++j) {
@@ -134,19 +144,24 @@ TEST_P(DataStructureTest, add_remove_edge_random_2E4_seq) {
 TEST_P(DataStructureTest, add_remove_edge_random_2E4_par) {
   PCSR pcsr(1000, 1000, GetParam(), 0);
   constexpr int edge_count = 2E5;
-#pragma omp parallel for
-  for (int i = 1; i < edge_count + 1; ++i) {
-    int src = std::rand() % 1000;
-    int target = std::rand() % 1000;
-    if (std::rand() % 4 != 0) {
-      pcsr.add_edge(src, target, i);
-      EXPECT_TRUE(pcsr.edge_exists(src, target))
-          << "Add: " << src << " " << target;
-    } else {
-      pcsr.remove_edge(src, target);
-      EXPECT_FALSE(pcsr.edge_exists(src, target))
-          << "Delete: " << src << " " << target;
+#pragma omp parallel
+  {
+    pcsr.edges.global_lock->registerThread();
+#pragma omp for nowait
+    for (int i = 1; i < edge_count + 1; ++i) {
+      int src = std::rand() % 1000;
+      int target = std::rand() % 1000;
+      if (std::rand() % 4 != 0) {
+        pcsr.add_edge(src, target, i);
+        EXPECT_TRUE(pcsr.edge_exists(src, target))
+            << "Add: " << src << " " << target;
+      } else {
+        pcsr.remove_edge(src, target);
+        EXPECT_FALSE(pcsr.edge_exists(src, target))
+            << "Delete: " << src << " " << target;
+      }
     }
+    pcsr.edges.global_lock->unregisterThread();
   }
 
   // Check whether all locks were released
