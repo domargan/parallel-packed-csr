@@ -28,10 +28,18 @@ ThreadPool::ThreadPool(const int NUM_OF_THREADS, bool lock_search, uint32_t init
 template <bool isMasterThread>
 void ThreadPool::execute(int thread_id) {
   cout << "Thread " << thread_id << " has " << tasks[thread_id].size() << " tasks" << endl;
+
+  int registered = -1;
+
   while (!tasks[thread_id].empty() || (!isMasterThread && !finished)) {
     if (!tasks[thread_id].empty()) {
       task t = tasks[thread_id].front();
       tasks[thread_id].pop();
+
+      if (registered == -1) {
+        pcsr->edges.global_lock->registerThread();
+        registered = 0;
+      }
       if (t.add) {
         pcsr->add_edge(t.src, t.target, 1);
       } else if (!t.read) {
@@ -39,7 +47,16 @@ void ThreadPool::execute(int thread_id) {
       } else {
         pcsr->read_neighbourhood(t.src);
       }
+
+    } else {
+      if (registered != -1) {
+        pcsr->edges.global_lock->unregisterThread();
+        registered = -1;
+      }
     }
+  }
+  if (registered != -1) {
+    pcsr->edges.global_lock->unregisterThread();
   }
 }
 
