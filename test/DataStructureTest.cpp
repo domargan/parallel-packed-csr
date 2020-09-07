@@ -4,6 +4,8 @@
  */
 #include "DataStructureTest.h"
 #include "PPPCSR.h"
+#include "bfs.h"
+#include "pagerank.h"
 
 using ::testing::Bool;
 
@@ -169,6 +171,45 @@ TEST_P(DataStructureTest, add_remove_edge_random_2E4_par) {
     EXPECT_TRUE(pcsr.edges.node_locks[j]->lockable()) << "Lock id: " << j;
   }
   EXPECT_TRUE(pcsr.edges.global_lock->lockable());
+}
+
+TEST_P(DataStructureTest, bfs_5E4) {
+  PCSR pcsr(1000, 1000, GetParam(), 0);
+  constexpr int edge_count = 5E4;
+  for (int i = 1; i < edge_count + 1; ++i) {
+    int src = std::rand() % 1000;
+    int target = std::rand() % 1000;
+    pcsr.add_edge(src, target, i);
+  }
+
+  // run BFS
+  auto start = chrono::steady_clock::now();
+  auto res = bfs(pcsr, 0);
+  auto finish = chrono::steady_clock::now();
+  EXPECT_EQ(res.size(), 1000);
+  cout << "BFS time: "
+       << chrono::duration_cast<chrono::milliseconds>(finish - start).count()
+       << endl;
+}
+
+TEST_P(DataStructureTest, pagerank_5E4) {
+  PCSR pcsr(1000, 1000, GetParam(), 0);
+  constexpr int edge_count = 5E4;
+  for (int i = 1; i < edge_count + 1; ++i) {
+    int src = std::rand() % 1000;
+    int target = std::rand() % 1000;
+    pcsr.add_edge(src, target, i);
+  }
+
+  // run pagerank
+  vector<float> weights(pcsr.get_n(), 1.0f);
+  auto start = chrono::steady_clock::now();
+  auto res = pagerank(pcsr, weights);
+  auto finish = chrono::steady_clock::now();
+  EXPECT_EQ(res.size(), 1000);
+  cout << "Pagerank time: "
+       << chrono::duration_cast<chrono::milliseconds>(finish - start).count()
+       << endl;
 }
 
 INSTANTIATE_TEST_CASE_P(DataStructureTestSuite, DataStructureTest, Bool());

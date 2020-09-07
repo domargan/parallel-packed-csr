@@ -89,23 +89,6 @@ void execute(int threads, int size, const vector<tuple<Operation, int, int>> &co
   update_existing_graph(core_graph, thread_pool.get(), threads, core_graph.size());
   // Do updates
   update_existing_graph(updates, thread_pool.get(), threads, size);
-
-  // run BFS
-  {
-    auto start = chrono::steady_clock::now();
-    auto res = bfs(*thread_pool->pcsr, 0);
-    auto finish = chrono::steady_clock::now();
-    cout << "BFS result size: " << res.size() << endl;
-    cout << "BFS time: " << chrono::duration_cast<chrono::milliseconds>(finish - start).count() << endl;
-  }
-
-  {
-    vector<float> weights(thread_pool->pcsr->get_n(), 1.0f);
-    auto start = chrono::steady_clock::now();
-    auto res = pagerank(*thread_pool->pcsr, weights);
-    auto finish = chrono::steady_clock::now();
-    cout << "Pagerank time: " << chrono::duration_cast<chrono::milliseconds>(finish - start).count() << endl;
-  }
 }
 
 enum class Version { PPCSR, PPPCSR, PPPCSRNUMA };
