@@ -143,7 +143,7 @@ for core in ${CORES[@]}; do
       delete="${delete} ${avg_delete} ${stddev_delete}"
 
       csv="${csv}${insert} ${delete}"
-      dat="${dat}${avg_insert} ${avg_delete} ${stddev_insert} ${stddev_delete} "
+      dat="${dat}${avg_insert} ${stddev_insert} ${avg_delete} ${stddev_delete} "
 
       if [ "$v" = "-ppcsr" ]; then
         break
@@ -204,17 +204,17 @@ set xrange [${CORES[0]}:${CORES[-1]}]
 set yrange [0:]
 plot \
 	"$PPCSR_PLOT_DATA" using 1:2 title 'insertions' with linespoint ls 1, \
-	"$PPCSR_PLOT_DATA" using 1:3 title 'deletions' with linespoint ls 2, \
-	"$PPCSR_PLOT_DATA" using 1:4 title 'insertions par' with linespoint ls 3, \
-	"$PPCSR_PLOT_DATA" using 1:5 title 'deletions par' with linespoint ls 4, \
-	"$PPCSR_PLOT_DATA" using 1:6 title 'insertions numa' with linespoint ls 5, \
-	"$PPCSR_PLOT_DATA" using 1:7 title 'deletions numa' with linespoint ls 6, \
-	"$PPCSR_PLOT_DATA" using 1:2:8 title '' with yerrorbars ls 1, \
-	"$PPCSR_PLOT_DATA" using 1:3:9 title '' with yerrorbars ls 2, \
-	"$PPCSR_PLOT_DATA" using 1:4:10 title '' with yerrorbars ls 3, \
-	"$PPCSR_PLOT_DATA" using 1:5:11 title '' with yerrorbars ls 4, \
-	"$PPCSR_PLOT_DATA" using 1:6:12 title '' with yerrorbars ls 5, \
-	"$PPCSR_PLOT_DATA" using 1:7:13 title '' with yerrorbars ls 6
+	"$PPCSR_PLOT_DATA" using 1:2:3 title '' with yerrorbars ls 1, \
+	"$PPCSR_PLOT_DATA" using 1:4 title 'deletions' with linespoint ls 2, \
+	"$PPCSR_PLOT_DATA" using 1:4:5 title '' with yerrorbars ls 2, \
+	"$PPCSR_PLOT_DATA" using 1:6 title 'insertions par' with linespoint ls 3, \
+	"$PPCSR_PLOT_DATA" using 1:6:7 title '' with yerrorbars ls 3, \
+	"$PPCSR_PLOT_DATA" using 1:8 title 'deletions par' with linespoint ls 4, \
+	"$PPCSR_PLOT_DATA" using 1:8:9 title '' with yerrorbars ls 4, \
+	"$PPCSR_PLOT_DATA" using 1:10 title 'insertions numa' with linespoint ls 5, \
+	"$PPCSR_PLOT_DATA" using 1:10:11 title '' with yerrorbars ls 5, \
+	"$PPCSR_PLOT_DATA" using 1:12 title 'deletions numa' with linespoint ls 6, \
+	"$PPCSR_PLOT_DATA" using 1:12:13 title '' with yerrorbars ls 6
 EOF
 
 gnuplot $PPCSR_PLOT_FILE
