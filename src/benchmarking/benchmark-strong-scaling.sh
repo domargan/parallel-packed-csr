@@ -166,7 +166,7 @@ echo -e "[START]\t Starting data plotting...\n"
 PPCSR_PLOT_FILE=$(mktemp gnuplot.pXXX)
 
 XLABEL="#cores"
-YLABEL="CPU time (s)"
+YLABEL="CPU time (ms)"
 
 cat <<EOF >$PPCSR_PLOT_FILE
 set term pdf font ", 12"

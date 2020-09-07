@@ -171,7 +171,7 @@ END {
 
 
 XLABEL="#Partitions per NUMA domain"
-YLABEL="CPU Time (s)"
+YLABEL="CPU Time (ms)"
 
 cat <<EOF >$PPCSR_PLOT_FILE
 set term pdf font ", 12"
