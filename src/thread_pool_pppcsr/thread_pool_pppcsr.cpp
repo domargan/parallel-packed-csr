@@ -21,7 +21,7 @@ ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, u
                                    int partitions_per_domain, bool use_numa)
     : tasks(NUM_OF_THREADS),
       finished(false),
-      available_nodes(numa_max_node() + 1),
+      available_nodes(std::min(numa_max_node() + 1, NUM_OF_THREADS)),
       indeces(available_nodes, 0),
       partitions_per_domain(partitions_per_domain),
       threadToDomain(NUM_OF_THREADS),
