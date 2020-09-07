@@ -108,6 +108,6 @@ void ThreadPool::stop() {
     cout << "Done" << endl;
   }
   end = chrono::steady_clock::now();
-  cout << "Elapsed wall clock time: " << chrono::duration_cast<chrono::seconds>(end - s).count() << endl;
+  cout << "Elapsed wall clock time: " << chrono::duration_cast<chrono::milliseconds>(end - s).count() << endl;
   thread_pool.clear();
 }
