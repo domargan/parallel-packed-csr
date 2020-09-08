@@ -11,12 +11,12 @@ using ::testing::Bool;
 
 TEST_P(DataStructureTest, Initialization) {
   const int size = 10;
-  PPPCSR pcsr(size, size, GetParam(), 1, false);
+  PPPCSR pcsr(size, size, GetParam(), 1, 1, false);
   EXPECT_EQ(pcsr.get_n(), size);
 }
 
 TEST_P(DataStructureTest, add_node) {
-  PPPCSR pcsr(0, 0, GetParam(), 1, false);
+  PPPCSR pcsr(0, 0, GetParam(), 1, 1, false);
   EXPECT_EQ(pcsr.get_n(), 0);
   pcsr.add_node();
   EXPECT_EQ(pcsr.get_n(), 1);
@@ -24,7 +24,7 @@ TEST_P(DataStructureTest, add_node) {
 }
 
 TEST_P(DataStructureTest, add_edge) {
-  PPPCSR pcsr(10, 10, GetParam(), 1, false);
+  PPPCSR pcsr(10, 10, GetParam(), 1, 1, false);
   // Try to add edge without corresponding node
   pcsr.add_edge(11, 1, 1);
 
@@ -36,7 +36,7 @@ TEST_P(DataStructureTest, add_edge) {
 }
 
 TEST_P(DataStructureTest, remove_edge) {
-  PPPCSR pcsr(10, 10, GetParam(), 1, false);
+  PPPCSR pcsr(10, 10, GetParam(), 1, 1, false);
   pcsr.add_node();
   pcsr.remove_edge(0, 1);
   EXPECT_FALSE(pcsr.edge_exists(0, 1));

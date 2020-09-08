@@ -10,14 +10,9 @@
 #include <cmath>
 #include <iostream>
 
-PPPCSR::PPPCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int partitionsPerDomain, bool use_numa)
+PPPCSR::PPPCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int numDomain, int partitionsPerDomain, bool use_numa)
     : partitionsPerDomain(partitionsPerDomain) {
-  std::size_t numDomains = 1;
-  if (numa_available() < 0 || !use_numa) {
-    std::cout << "Using single domain\n";
-  } else {
-    numDomains = numa_max_node() + 1;
-  }
+  std::size_t numDomains = numDomain;
 
   partitions.reserve(numDomains * partitionsPerDomain);
   distribution.reserve(numDomains * partitionsPerDomain);
