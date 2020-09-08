@@ -103,7 +103,7 @@ for p in ${PARTITIONS_PER_DOMAIN[@]}; do
     insert=""
     for ((r = 1; r <= REPETITIONS; r++)); do
       echo -e "[START]\t ${v:1} edge insertions: Executing repetition #$r on $CORES cores for $p partitions per NUMA domain..."
-      output=$($PPCSR_EXEC -threads=$CORES $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_INSERTIONS_FILE -partitions_per_domain=$p | tee "${PPCSR_PROGRAM_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_insertions_${v:1}_${CORES}cores_${p}par_${r}.txt" | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
+      output=$($PPCSR_EXEC -threads=$CORES $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_INSERTIONS_FILE -partitions_per_domain=$p 2>&1 | tee "${PPCSR_PROGRAM_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_insertions_${v:1}_${CORES}cores_${p}par_${r}.txt" | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
       echo -e "[END]  \t ${v:1} edge insertions: Finished repetition #$r on $CORES cores for $p partitions per NUMA domain.\n"
       insert="${insert} ${output}"
     done
@@ -119,7 +119,7 @@ for p in ${PARTITIONS_PER_DOMAIN[@]}; do
     delete=""
     for ((r = 1; r <= REPETITIONS; r++)); do
       echo -e "[START]\t ${v:1} edge deletions: Executing repetition #$r on $CORES cores for $p partitions per NUMA domain..."
-      output=$($PPCSR_EXEC -delete -threads=$CORES $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_DELETIONS_FILE -partitions_per_domain=$p | tee "${PPCSR_PROGRAM_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_deletions_${v:1}_${CORES}cores_${p}par_${r}.txt" | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
+      output=$($PPCSR_EXEC -delete -threads=$CORES $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_DELETIONS_FILE -partitions_per_domain=$p 2>&1 | tee "${PPCSR_PROGRAM_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_deletions_${v:1}_${CORES}cores_${p}par_${r}.txt" | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
       echo -e "[END]  \t ${v:1} edge deletions: Finished repetition #$r on $CORES cores for $p partitions per NUMA domain.\n"
       delete="${delete} ${output}"
     done
