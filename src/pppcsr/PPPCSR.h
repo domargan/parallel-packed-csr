@@ -13,7 +13,7 @@ class PPPCSR {
   // data members
   edge_list_t edges;
 
-  PPPCSR(uint32_t init_n, uint32_t, bool lock_search, int partitionsPerDomain, bool use_numa);
+  PPPCSR(uint32_t init_n, uint32_t, bool lock_search, int numDomain, int partitionsPerDomain, bool use_numa);
   //    PPPCSR(uint32_t init_n, vector<condition_variable*> *cvs, bool search_lock);
   //    ~PPPCSR();
   /** Public API */

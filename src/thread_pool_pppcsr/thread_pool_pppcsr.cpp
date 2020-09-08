@@ -27,7 +27,7 @@ ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, u
       threadToDomain(NUM_OF_THREADS),
       firstThreadDomain(available_nodes, 0),
       numThreadsDomain(available_nodes) {
-  pcsr = new PPPCSR(init_num_nodes, init_num_nodes, lock_search, partitions_per_domain, use_numa);
+  pcsr = new PPPCSR(init_num_nodes, init_num_nodes, lock_search, available_nodes, partitions_per_domain, use_numa);
 
   int d = available_nodes;
   int minNumThreads = NUM_OF_THREADS / d;
