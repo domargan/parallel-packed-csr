@@ -176,13 +176,14 @@ YLABEL="CPU Time (ms)"
 cat <<EOF >$PPCSR_PLOT_FILE
 set term pdf font ", 12"
 set output "${PPCSR_PDF_PLOT_FILE}.pdf"
-set title "Machine: $MACHINE_NAME \t Dataset: $DATASET_NAME \t #Updates: $SIZE"
+set title font ", 10"
+set title "Machine: $MACHINE_NAME \t Threads: $CORES \t Dataset: $DATASET_NAME \t #Updates: $SIZE"
 set xlabel "${XLABEL}"
 set ylabel "${YLABEL}" offset 1.5
 set size ratio 0.5
 
 set key right top
-set key font ",10"
+set key font ", 10"
 
 set style data histograms
 set style histogram cluster gap 1
