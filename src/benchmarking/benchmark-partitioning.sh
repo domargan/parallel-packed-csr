@@ -57,7 +57,6 @@ mkdir $PPCSR_BENCHMARK_OUTPUTS_DIR $PPCSR_PROGRAM_OUTPUTS_DIR
 : > $PPCSR_BENCHMARK_LOG
 exec 2> >(tee -a $PPCSR_BENCHMARK_LOG >&2) > >(tee -a $PPCSR_BENCHMARK_LOG)
 
-
 ######################################
 
 echo "######################################"
@@ -152,13 +151,13 @@ PPCSR_PLOT_FILE=$(mktemp gnuplot.pXXX)
 PPCSR_PLOT_DATA_TRANSP=$(mktemp gnuplot.datXXX)
 
 awk '
-{ 
+{
     for (i=1; i<=NF; i++)  {
         a[NR,i] = $i
     }
 }
 NF>p { p = NF }
-END {    
+END {
     for(j=1; j<=p; j++) {
         str=a[1,j]
         for(i=2; i<=NR; i++){
@@ -169,13 +168,13 @@ END {
 
 }' $PPCSR_PLOT_DATA >$PPCSR_PLOT_DATA_TRANSP
 
-
 XLABEL="#Partitions per NUMA domain"
 YLABEL="CPU Time (ms)"
 
 cat <<EOF >$PPCSR_PLOT_FILE
 set term pdf font ", 12"
 set output "${PPCSR_PDF_PLOT_FILE}.pdf"
+
 set title font ", 10"
 set title "Machine: $MACHINE_NAME \t Threads: $CORES \t Dataset: $DATASET_NAME \t #Updates: $SIZE"
 set xlabel "${XLABEL}"
@@ -191,6 +190,7 @@ set style fill solid 0.3
 set boxwidth 0.9
 set auto x
 set xtic scale 0
+set yrange [0:]
 
 N = system("awk 'NR==1{print NF}' $PPCSR_PLOT_DATA_TRANSP")
 
