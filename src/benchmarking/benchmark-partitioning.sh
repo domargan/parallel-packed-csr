@@ -57,7 +57,6 @@ mkdir $PPCSR_BENCHMARK_OUTPUTS_DIR $PPCSR_PROGRAM_OUTPUTS_DIR
 : > $PPCSR_BENCHMARK_LOG
 exec 2> >(tee -a $PPCSR_BENCHMARK_LOG >&2) > >(tee -a $PPCSR_BENCHMARK_LOG)
 
-
 ######################################
 
 echo "######################################"
@@ -103,7 +102,7 @@ for p in ${PARTITIONS_PER_DOMAIN[@]}; do
     insert=""
     for ((r = 1; r <= REPETITIONS; r++)); do
       echo -e "[START]\t ${v:1} edge insertions: Executing repetition #$r on $CORES cores for $p partitions per NUMA domain..."
-      output=$($PPCSR_EXEC -threads=$CORES $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_INSERTIONS_FILE -partitions_per_domain=$p | tee "${PPCSR_PROGRAM_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_insertions_${v:1}_${CORES}cores_${p}par_${r}.txt" | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
+      output=$($PPCSR_EXEC -threads=$CORES $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_INSERTIONS_FILE -partitions_per_domain=$p 2>&1 | tee "${PPCSR_PROGRAM_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_insertions_${v:1}_${CORES}cores_${p}par_${r}.txt" | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
       echo -e "[END]  \t ${v:1} edge insertions: Finished repetition #$r on $CORES cores for $p partitions per NUMA domain.\n"
       insert="${insert} ${output}"
     done
@@ -119,7 +118,7 @@ for p in ${PARTITIONS_PER_DOMAIN[@]}; do
     delete=""
     for ((r = 1; r <= REPETITIONS; r++)); do
       echo -e "[START]\t ${v:1} edge deletions: Executing repetition #$r on $CORES cores for $p partitions per NUMA domain..."
-      output=$($PPCSR_EXEC -delete -threads=$CORES $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_DELETIONS_FILE -partitions_per_domain=$p | tee "${PPCSR_PROGRAM_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_deletions_${v:1}_${CORES}cores_${p}par_${r}.txt" | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
+      output=$($PPCSR_EXEC -delete -threads=$CORES $v -size=$SIZE -core_graph=$PPCSR_CORE_GRAPH_FILE -update_file=$PPCSR_DELETIONS_FILE -partitions_per_domain=$p 2>&1 | tee "${PPCSR_PROGRAM_OUTPUTS_DIR}/${PPCSR_BASE_NAME}_deletions_${v:1}_${CORES}cores_${p}par_${r}.txt" | sed '/Elapsed/!d' | sed -n '0~2p' | sed 's/Elapsed wall clock time: //g')
       echo -e "[END]  \t ${v:1} edge deletions: Finished repetition #$r on $CORES cores for $p partitions per NUMA domain.\n"
       delete="${delete} ${output}"
     done
@@ -152,13 +151,13 @@ PPCSR_PLOT_FILE=$(mktemp gnuplot.pXXX)
 PPCSR_PLOT_DATA_TRANSP=$(mktemp gnuplot.datXXX)
 
 awk '
-{ 
+{
     for (i=1; i<=NF; i++)  {
         a[NR,i] = $i
     }
 }
 NF>p { p = NF }
-END {    
+END {
     for(j=1; j<=p; j++) {
         str=a[1,j]
         for(i=2; i<=NR; i++){
@@ -169,20 +168,21 @@ END {
 
 }' $PPCSR_PLOT_DATA >$PPCSR_PLOT_DATA_TRANSP
 
-
 XLABEL="#Partitions per NUMA domain"
-YLABEL="CPU Time (s)"
+YLABEL="CPU Time (ms)"
 
 cat <<EOF >$PPCSR_PLOT_FILE
 set term pdf font ", 12"
 set output "${PPCSR_PDF_PLOT_FILE}.pdf"
-set title "Machine: $MACHINE_NAME \t Dataset: $DATASET_NAME \t #Updates: $SIZE"
+
+set title font ", 10"
+set title "Machine: $MACHINE_NAME \t Threads: $CORES \t Dataset: $DATASET_NAME \t #Updates: $SIZE"
 set xlabel "${XLABEL}"
 set ylabel "${YLABEL}" offset 1.5
 set size ratio 0.5
 
 set key right top
-set key font ",10"
+set key font ", 10"
 
 set style data histograms
 set style histogram cluster gap 1
@@ -190,6 +190,7 @@ set style fill solid 0.3
 set boxwidth 0.9
 set auto x
 set xtic scale 0
+set yrange [0:]
 
 N = system("awk 'NR==1{print NF}' $PPCSR_PLOT_DATA_TRANSP")
 
