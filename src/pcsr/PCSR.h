@@ -159,6 +159,7 @@ class PCSR {
   pair<double, int> redistr_store(edge_t *space, int index, int len);
   void fix_sentinel(const edge_t &sentinel, int in);
   pair<uint32_t, int> binary_search(edge_t *elem, uint32_t start, uint32_t end, bool unlock);
+  void resizeEdgeArray(size_t newSize);
 
   /**
    * Returns total number of edges in range [index, index + len)

@@ -64,16 +64,19 @@ bool is_sentinel(const edge_t &e) { return e.dest == UINT32_MAX || e.value == UI
 
 // bool is_null(edge_t e) { return e.value == 0; }
 
+void PCSR::resizeEdgeArray(size_t newSize) {
+  edges.N = newSize;
+  edges.logN = (edges.N < 64)? std::max(1, edges.N) : 1 << (bsr_word(bsr_word(edges.N) + 1)+1);
+  edges.H = bsr_word(edges.N / edges.logN);
+}
+
 void PCSR::clear() {
-  int n = 0;
   if (is_numa_available) {
     numa_free(edges.items, edges.N * sizeof(*(edges.items)));
   } else {
     free(edges.items);
   }
-  edges.N = 2 << bsr_word(n);
-  edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
-  edges.H = bsr_word(edges.N / edges.logN);
+  resizeEdgeArray(2 << bsr_word(0));
 }
 
 vector<tuple<uint32_t, uint32_t, uint32_t>> PCSR::get_edges() {
@@ -245,9 +248,7 @@ void PCSR::redistribute(int index, int len) {
 
 void PCSR::double_list() {
   const int prev_locks_size = edges.N / edges.logN;
-  edges.N *= 2;
-  edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
-  edges.H = bsr_word(edges.N / edges.logN);
+  resizeEdgeArray(edges.N * 2);
   const int new_locks_size = edges.N / edges.logN;
 
   // Added by Eleni Alevra - START
@@ -280,9 +281,7 @@ void PCSR::double_list() {
 
 void PCSR::half_list() {
   const int prev_locks_size = edges.N / edges.logN;
-  edges.N /= 2;
-  edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
-  edges.H = bsr_word(edges.N / edges.logN);
+  resizeEdgeArray(edges.N / 2);
   const int new_locks_size = edges.N / edges.logN;
 
   int j = 0;
@@ -773,9 +772,7 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
 
 PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain)
     : nodes(src_n), is_numa_available{numa_available() >= 0 && domain >= 0}, domain(domain) {
-  edges.N = 2 << bsr_word(init_n + src_n);
-  edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
-  edges.H = bsr_word(edges.N / edges.logN);
+  resizeEdgeArray(2 << bsr_word(init_n + src_n));
   edges.global_lock = make_shared<FastLock>();
 
   lock_bsearch = lock_search;
@@ -1267,9 +1264,7 @@ pair<double, int> PCSR::redistr_store(edge_t *space, int index, int len) {
 // Added by Eleni Alevra
 PCSR::PCSR(uint32_t init_n, vector<condition_variable *> *cvs, bool lock_search, int domain)
     : is_numa_available{numa_available() >= 0 && domain >= 0}, domain(domain) {
-  edges.N = 2 << bsr_word(init_n);
-  edges.logN = (1 << bsr_word(bsr_word(edges.N) + 1));
-  edges.H = bsr_word(edges.N / edges.logN);
+  resizeEdgeArray(2 << bsr_word(init_n));
   edges.global_lock = make_shared<FastLock>();
 
   this->redistr_mutex = new mutex;
