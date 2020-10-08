@@ -77,13 +77,13 @@ void PCSR::clear() {
 }
 
 vector<tuple<uint32_t, uint32_t, uint32_t>> PCSR::get_edges() {
-  uint64_t n = get_n();
+  const auto n = get_n();
   vector<tuple<uint32_t, uint32_t, uint32_t>> output;
 
-  for (int i = 0; i < n; i++) {
-    uint32_t start = nodes[i].beginning;
-    uint32_t end = nodes[i].end;
-    for (int j = start + 1; j < end; j++) {
+  for (uint64_t i = 0; i < n; i++) {
+    auto start = nodes[i].beginning;
+    auto end = nodes[i].end;
+    for (auto j = start + 1; j < end; j++) {
       if (!is_null(edges.items[j].value)) {
         output.push_back(make_tuple(i, edges.items[j].dest, edges.items[j].value));
       }
@@ -101,7 +101,7 @@ uint64_t PCSR::get_size() {
 }
 
 void PCSR::print_array() {
-  for (int i = 0; i < edges.N; i++) {
+  for (uint64_t i = 0; i < edges.N; i++) {
     if (is_null(edges.items[i].value)) {
       printf("%d-x ", i);
     } else if (is_sentinel(edges.items[i])) {
@@ -120,10 +120,10 @@ void PCSR::print_array() {
 // get density of a node
 double get_density(edge_list_t *list, int index, int len) {
   int full = 0;
-  for (int i = index; i < index + len; i++) {
+  for (auto i = index; i < index + len; i++) {
     full += (!is_null(list->items[i].value));
   }
-  double full_d = (double)full;
+  const auto full_d = static_cast<double>(full);
   return full_d / len;
 }
 
@@ -132,7 +132,7 @@ double get_full(edge_list_t *list, int index, int len) {
   for (int i = 0; i < index + len; i++) {
     full += (!is_null(list->items[i].value));
   }
-  return (double)full;
+  return static_cast<double>(full);
 }
 
 // height of this node in the tree
@@ -164,7 +164,7 @@ void PCSR::fix_sentinel(const edge_t &sentinel, int in) {
   if (!is_sentinel(sentinel)) {
     return;
   }
-  uint32_t node_index = sentinel.value;
+  auto node_index = sentinel.value;
 
   if (node_index == UINT32_MAX) {
     node_index = 0;
@@ -431,8 +431,8 @@ uint32_t find_elem_pointer_reverse(edge_list_t *list, uint32_t index, edge_t ele
 // unlocking when unlock is set
 pair<uint32_t, int> PCSR::binary_search(edge_t *elem, uint32_t start, uint32_t end, bool unlock) {
   int ins_v = -1;
-  int start_node = find_leaf(&edges, start) / edges.logN;
-  int end_node = find_leaf(&edges, end) / edges.logN;
+  uint32_t start_node = find_leaf(&edges, start) / edges.logN;
+  uint32_t end_node = find_leaf(&edges, end) / edges.logN;
 
   while (start + 1 < end) {
     // TODO: fix potential overflow for large data sets (use std::midpoint)
@@ -510,8 +510,8 @@ uint32_t PCSR::find_value(uint32_t src, uint32_t dest) {
   edge_t e;
   e.value = 0;
   e.dest = dest;
-  pair<uint32_t, int> bs = binary_search(&e, nodes[src].beginning + 1, nodes[src].end, false);
-  uint32_t loc = bs.first;
+  auto bs = binary_search(&e, nodes[src].beginning + 1, nodes[src].end, false);
+  auto loc = bs.first;
   if (!is_null(edges.items[loc].value) && edges.items[loc].dest == dest) {
     return edges.items[loc].value;
   } else {
@@ -522,9 +522,9 @@ uint32_t PCSR::find_value(uint32_t src, uint32_t dest) {
 // insert elem at index returns index that the element went to (which
 // may not be the same one that you put it at)
 void PCSR::insert(uint32_t index, edge_t elem, uint32_t src, insertion_info_t *info) {
-  int node_index = find_leaf(&edges, index);
-  int level = edges.H;
-  int len = edges.logN;
+  auto node_index = find_leaf(&edges, index);
+  auto level = edges.H;
+  auto len = edges.logN;
 
   // always deposit on the left
   if (!is_null(edges.items[index].value)) {
@@ -541,7 +541,7 @@ void PCSR::insert(uint32_t index, edge_t elem, uint32_t src, insertion_info_t *i
       node_t node = nodes[src];
       // If we are at this point we already have a global lock on the data structure so there is no need to
       // do any extra locking for binary search
-      uint32_t loc_to_add = binary_search(&elem, node.beginning + 1, node.end, false).first;
+      auto loc_to_add = binary_search(&elem, node.beginning + 1, node.end, false).first;
       return insert(loc_to_add, elem, src, nullptr);
     } else {
       if (slide_right(index, src) == -1) {
@@ -554,7 +554,7 @@ void PCSR::insert(uint32_t index, edge_t elem, uint32_t src, insertion_info_t *i
   edges.items[index].value = elem.value;
   edges.items[index].dest = elem.dest;
 
-  double density = get_density(&edges, node_index, len);
+  auto density = get_density(&edges, node_index, len);
 
   // spill over into next level up, node is completely full.
   if (density == 1) {
@@ -600,9 +600,9 @@ void PCSR::insert(uint32_t index, edge_t elem, uint32_t src, insertion_info_t *i
 }
 
 void PCSR::remove(uint32_t index, const edge_t &elem, uint32_t src) {
-  int node_index = find_leaf(&edges, index);
-  int level = edges.H;
-  int len = edges.logN;
+  auto node_index = find_leaf(&edges, index);
+  auto level = edges.H;
+  auto len = edges.logN;
 
   if (is_null(edges.items[index].value) || is_sentinel(elem) || edges.items[index].dest != elem.dest) {
     return;
@@ -614,7 +614,7 @@ void PCSR::remove(uint32_t index, const edge_t &elem, uint32_t src) {
   redistribute(node_index, len);
   // get density of the leaf you are in
   pair_double density_b = density_bound(&edges, level);
-  double density = get_density(&edges, node_index, len);
+  auto density = get_density(&edges, node_index, len);
 
   // while density too low, go up the implicit tree
   // go up to the biggest node above the density bound
@@ -644,9 +644,9 @@ uint32_t find_index(edge_list_t *list, edge_t *elem_pointer) {
 std::vector<uint32_t> PCSR::sparse_matrix_vector_multiplication(std::vector<uint32_t> const &v) {
   std::vector<uint32_t> result(nodes.size(), 0);
 
-  int num_vertices = nodes.size();
+  auto num_vertices = nodes.size();
 
-  for (int i = 0; i < num_vertices; i++) {
+  for (size_t i = 0; i < num_vertices; i++) {
     // +1 to avoid sentinel
 
     for (uint32_t j = nodes[i].beginning + 1; j < nodes[i].end; j++) {
@@ -686,7 +686,7 @@ void PCSR::print_graph(int src) {
 void PCSR::add_node() {
   adding_sentinels = true;
   node_t node;
-  int len = nodes.size();
+  auto len = nodes.size();
   edge_t sentinel;
   sentinel.src = len;
   sentinel.dest = UINT32_MAX;  // placeholder
@@ -719,14 +719,14 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
 
   edges.global_lock->lock_shared();
 
-  int beginning = nodes[src].beginning;
-  int end = nodes[src].end;
-  uint32_t first_node = get_node_id(find_leaf(&edges, beginning + 1));
-  uint32_t last_node = get_node_id(find_leaf(&edges, end));
+  auto beginning = nodes[src].beginning;
+  auto end = nodes[src].end;
+  auto first_node = get_node_id(find_leaf(&edges, beginning + 1));
+  auto last_node = get_node_id(find_leaf(&edges, end));
   uint32_t loc_to_rem;
   int ins_node_v;
   if (lock_bsearch) {
-    for (uint32_t i = first_node; i <= last_node; i++) {
+    for (auto i = first_node; i <= last_node; i++) {
       edges.node_locks[i]->lock_shared();
     }
     if (nodes[src].beginning != beginning || nodes[src].end != end) {
@@ -740,18 +740,18 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
     // can re-start. We can't keep the PCSR node locked after binary search in case we have to acquire some locks to
     // its left first.
     ins_node_v = edges.node_locks[get_node_id(find_leaf(&edges, loc_to_rem))]->load();
-    for (int i = first_node; i <= last_node; i++) {
+    for (auto i = first_node; i <= last_node; i++) {
       edges.node_locks[i]->unlock_shared();
     }
   } else {
-    pair<int, int> bs = binary_search(&e, nodes[src].beginning + 1, nodes[src].end, false);
+    auto bs = binary_search(&e, nodes[src].beginning + 1, nodes[src].end, false);
     loc_to_rem = bs.first;
     ins_node_v = bs.second;
   }
 
   nodes[src].num_neighbors--;
 
-  pair<int, int> acquired_locks = acquire_remove_locks(loc_to_rem, e, src, ins_node_v, -1);
+  auto acquired_locks = acquire_remove_locks(loc_to_rem, e, src, ins_node_v, -1);
   if (acquired_locks.first == EDGE_NOT_FOUND) {
     cout << "not found " << src << " " << dest << endl;
     edges.global_lock->unlock_shared();
@@ -1096,8 +1096,8 @@ pair<pair<int, int>, insertion_info_t *> PCSR::acquire_insert_locks(uint32_t ind
   node_index = find_leaf(&edges, index);
 
   if (!(is_null(edges.items[index].value))) {
-    uint32_t curr_node = get_node_id(node_index);
-    uint32_t curr_ind = index + 1;
+    auto curr_node = get_node_id(node_index);
+    int curr_ind = index + 1;
     uint32_t curr_node_idx = node_index;
     if (curr_ind < edges.N && curr_ind >= curr_node_idx + len) {
       curr_node_idx = curr_ind;
@@ -1133,7 +1133,7 @@ pair<pair<int, int>, insertion_info_t *> PCSR::acquire_insert_locks(uint32_t ind
         }
       }
       if (curr_ind == -1) {
-        for (int i = min_node; i <= max_node; i++) {
+        for (auto i = min_node; i <= max_node; i++) {
           edges.node_locks[i]->unlock();
         }
         return make_pair(make_pair(NEED_GLOBAL_WRITE, NEED_GLOBAL_WRITE), nullptr);
@@ -1227,13 +1227,13 @@ pair<int, int> PCSR::acquire_remove_locks(uint32_t index, edge_t elem, uint32_t 
     }
   }
 
-  uint32_t new_node_idx = find_node(node_index, len);
-  int new_node_id = get_node_id(new_node_idx);
+  auto new_node_idx = find_node(node_index, len);
+  auto new_node_id = get_node_id(new_node_idx);
   if (new_node_idx < node_index && new_node_id < min_node) {
     release_locks_no_inc(make_pair(min_node, max_node));
     return acquire_remove_locks(index, elem, src, ins_node_v, new_node_id);
   }
-  for (uint32_t i = max_node + 1; i < get_node_id(new_node_idx + len); i++) {
+  for (auto i = max_node + 1; i < get_node_id(new_node_idx + len); i++) {
     edges.node_locks[i]->lock();
     //    got_locks++;
     max_node = i;
@@ -1245,8 +1245,8 @@ pair<int, int> PCSR::acquire_remove_locks(uint32_t index, edge_t elem, uint32_t 
 // Added by Eleni Alevra
 int PCSR::count_total_edges() {
   int t = 0;
-  for (int i = 0; i < nodes.size(); i++) {
-    for (int j = nodes[i].beginning + 1; j < nodes[i].end; j++) {
+  for (size_t i = 0; i < nodes.size(); i++) {
+    for (auto j = nodes[i].beginning + 1; j < nodes[i].end; j++) {
       if (!(is_null(edges.items[j].value))) {
         t++;
       }
@@ -1261,7 +1261,7 @@ int PCSR::count_total_edges() {
 // Added by Eleni Alevra
 pair<double, int> PCSR::redistr_store(edge_t *space, int index, int len) {
   int j = 0;
-  for (int i = index; i < index + len; i++) {
+  for (auto i = index; i < index + len; i++) {
     space[j] = edges.items[i];
     j += (!(is_null(edges.items[i].value)));
     edges.items[i].value = 0;
@@ -1292,17 +1292,17 @@ PCSR::PCSR(uint32_t init_n, vector<condition_variable *> *cvs, bool lock_search,
     edges.node_locks = (HybridLock **)malloc((edges.N / edges.logN) * sizeof(HybridLock *));
     edges.items = (edge_t *)malloc(edges.N * sizeof(*(edges.items)));
   }
-  for (int i = 0; i < edges.N; i++) {
+  for (uint64_t i = 0; i < edges.N; i++) {
     edges.items[i].src = -1;
     edges.items[i].value = 0;
     edges.items[i].dest = 0;
   }
 
-  for (int i = 0; i < edges.N / edges.logN; i++) {
+  for (uint32_t i = 0; i < edges.N / edges.logN; i++) {
     edges.node_locks[i] = new HybridLock();
   }
 
-  for (int i = 0; i < init_n; i++) {
+  for (uint32_t i = 0; i < init_n; i++) {
     add_node();
   }
 }
@@ -1311,7 +1311,7 @@ PCSR::PCSR(uint32_t init_n, vector<condition_variable *> *cvs, bool lock_search,
 // Added by Eleni Alevra
 int PCSR::count_elems(int index, int len) {
   int j = 0;
-  for (int i = index; i < index + len; i++) {
+  for (auto i = index; i < index + len; i++) {
     j += !(is_null(edges.items[i].value)) && !is_sentinel(edges.items[i]);
   }
   return j;
@@ -1336,7 +1336,7 @@ bool PCSR::got_correct_insertion_index(edge_t ins_edge, uint32_t src, uint32_t i
     // The current position is empty so we need to find the next element to the right to make sure it's bigger than the
     // one we want to insert
     int ind = index + 1;
-    int curr_n = node_index;
+    auto curr_n = node_index;
     if (ind < edges.N && ind >= curr_n + edges.logN) {
       curr_n += edges.logN;
       edges.node_locks[++max_node]->lock();
@@ -1364,7 +1364,7 @@ bool PCSR::got_correct_insertion_index(edge_t ins_edge, uint32_t src, uint32_t i
     }
   }
   // Go to the left to find the next element to the left and make sure it's less than the one we are inserting
-  int ind = index - 1;
+  auto ind = index - 1;
   edge_t item;
   item.value = 0;
   item.dest = 0;
@@ -1398,8 +1398,8 @@ void PCSR::add_edge_parallel(uint32_t src, uint32_t dest, uint32_t value, int re
     }
 
     edges.global_lock->lock_shared();
-    int beginning = nodes[src].beginning;
-    int end = nodes[src].end;
+    auto beginning = nodes[src].beginning;
+    auto end = nodes[src].end;
     uint32_t first_node = get_node_id(find_leaf(&edges, beginning + 1));
     nodes[src].num_neighbors++;
     pair<uint32_t, int> bs;
@@ -1412,7 +1412,7 @@ void PCSR::add_edge_parallel(uint32_t src, uint32_t dest, uint32_t value, int re
       }
       // If after we have locked there have been more edges added, re-start to include them in the search
       if (nodes[src].beginning != beginning || nodes[src].end != end) {
-        for (int i = first_node; i <= last_node; i++) {
+        for (auto i = first_node; i <= last_node; i++) {
           edges.node_locks[i]->unlock_shared();
         }
         edges.global_lock->unlock_shared();

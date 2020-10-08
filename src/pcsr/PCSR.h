@@ -33,7 +33,7 @@ typedef struct _edge {
 } edge_t;
 
 typedef struct edge_list {
-  int N;
+  uint64_t N;
   int H;
   int logN;
   shared_ptr<HybridLock> global_lock;
@@ -194,8 +194,8 @@ class PCSR {
 
   void nodes_unlock_shared(bool unlock, int start_node, int end_node);
 
-  int domain;
   const bool is_numa_available;
+  int domain;
 };
 
 #endif  // PCSR2_PCSR_H
