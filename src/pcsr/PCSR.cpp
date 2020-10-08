@@ -161,6 +161,9 @@ pair_double density_bound(edge_list_t *list, int depth) {
 
 // fix pointer from node to moved sentinel
 void PCSR::fix_sentinel(const edge_t &sentinel, int in) {
+  if (!is_sentinel(sentinel)) {
+    return;
+  }
   uint32_t node_index = sentinel.value;
 
   if (node_index == UINT32_MAX) {
@@ -234,16 +237,10 @@ void PCSR::redistribute(int index, int len) {
     const size_t in = static_cast<size_t>(index_d);
 
     std::swap(edges.items[in], edges.items[i]);
-    if (is_sentinel(edges.items[in])) {
-      // fixing pointer of node that goes to this sentinel
-      fix_sentinel(edges.items[in], in);
-    }
+    fix_sentinel(edges.items[in], in);
     index_d -= step;
   }
-  if (is_sentinel(edges.items[index])) {
-    // fixing pointer of node that goes to this sentinel
-    fix_sentinel(edges.items[index], index);
-  }
+  fix_sentinel(edges.items[index], index);
 }
 
 void PCSR::double_list() {
@@ -341,14 +338,14 @@ int PCSR::slide_right(int index, uint32_t src) {
   while (index < edges.N && !is_null(edges.items[index].value)) {
     edge_t temp = edges.items[index];
     edges.items[index] = el;
-    if (!is_null(el.value) && is_sentinel(el)) {
+    if (!is_null(el.value)) {
       // fixing pointer of node that goes to this sentinel
       fix_sentinel(el, index);
     }
     el = temp;
     index++;
   }
-  if (!is_null(el.value) && is_sentinel(el)) {
+  if (!is_null(el.value)) {
     // fixing pointer of node that goes to this sentinel
     fix_sentinel(el, index);
   }
@@ -375,7 +372,7 @@ void PCSR::slide_left(int index, uint32_t src) {
   while (index >= 0 && !is_null(edges.items[index].value)) {
     edge_t temp = edges.items[index];
     edges.items[index] = el;
-    if (!is_null(el.value) && is_sentinel(el)) {
+    if (!is_null(el.value)) {
       // fixing pointer of node that goes to this sentinel
       fix_sentinel(el, index);
     }
@@ -389,7 +386,7 @@ void PCSR::slide_left(int index, uint32_t src) {
     slide_right(0, src);
     index = 0;
   }
-  if (!is_null(el.value) && is_sentinel(el)) {
+  if (!is_null(el.value)) {
     // fixing pointer of node that goes to this sentinel
     fix_sentinel(el, index);
   }
