@@ -101,7 +101,7 @@ uint64_t PCSR::get_size() {
 }
 
 void PCSR::print_array() {
-  for (int i = 100000; i < 100500; i++) {
+  for (int i = 0; i < edges.N; i++) {
     if (is_null(edges.items[i].value)) {
       printf("%d-x ", i);
     } else if (is_sentinel(edges.items[i])) {
@@ -177,36 +177,73 @@ void PCSR::fix_sentinel(const edge_t &sentinel, int in) {
 // Evenly redistribute elements in the ofm, given a range to look into
 // index: starting position in ofm structure
 // len: area to redistribute
-void PCSR::redistribute(int index, int len) {
-  edge_t *space = (edge_t *)malloc(len * sizeof(*(edges.items)));
-  int j = 0;
+// Out of place version
+// void PCSR::redistribute(int index, int len) {
+//  edge_t *space = (edge_t *)malloc(len * sizeof(*(edges.items)));
+//  int j = 0;
+//
+//  // move all items in ofm in the range into
+//  // a temp array
+//  for (int i = index; i < index + len; i++) {
+//    space[j] = edges.items[i];
+//    // counting non-null edges
+//    j += (!is_null(edges.items[i].value));
+//    // setting section to null
+//    edges.items[i].src = -1;
+//    edges.items[i].value = 0;
+//    edges.items[i].dest = 0;
+//  }
+//
+//  // evenly redistribute for a uniform density
+//  double index_d = index;
+//  double step = ((double)len) / j;
+//  for (int i = 0; i < j; i++) {
+//    int in = static_cast<int>(index_d);
+//
+//    edges.items[in] = space[i];
+//    if (is_sentinel(space[i])) {
+//      // fixing pointer of node that goes to this sentinel
+//      fix_sentinel(space[i], in);
+//    }
+//    index_d += step;
+//  }
+//  free(space);
+//}
 
-  // move all items in ofm in the range into
-  // a temp array
-  for (int i = index; i < index + len; i++) {
-    space[j] = edges.items[i];
+// Inplace version
+void PCSR::redistribute(int index, int len) {
+  size_t j = 0;
+  const size_t end = index + len;
+
+  for (size_t i = index; i < end; i++) {
+    edges.items[index + j] = edges.items[i];
     // counting non-null edges
-    j += (!is_null(edges.items[i].value));
-    // setting section to null
+    j += (!is_null(edges.items[index + j].value));
+  }
+  for (size_t i = index + j; i < end; i++) {
     edges.items[i].src = -1;
     edges.items[i].value = 0;
     edges.items[i].dest = 0;
   }
-
   // evenly redistribute for a uniform density
-  double index_d = index;
-  double step = ((double)len) / j;
-  for (int i = 0; i < j; i++) {
-    int in = static_cast<int>(index_d);
+  const double step = static_cast<double>(len) / j;
+  double index_d = index + static_cast<double>(j - 1) * step;
 
-    edges.items[in] = space[i];
-    if (is_sentinel(space[i])) {
+  // Ignore element at position index since it is already in the correct position
+  for (size_t i = index + j - 1; i > index; i--) {
+    const size_t in = static_cast<size_t>(index_d);
+
+    std::swap(edges.items[in], edges.items[i]);
+    if (is_sentinel(edges.items[in])) {
       // fixing pointer of node that goes to this sentinel
-      fix_sentinel(space[i], in);
+      fix_sentinel(edges.items[in], in);
     }
-    index_d += step;
+    index_d -= step;
   }
-  free(space);
+  if (is_sentinel(edges.items[index])) {
+    // fixing pointer of node that goes to this sentinel
+    fix_sentinel(edges.items[index], index);
+  }
 }
 
 void PCSR::double_list() {
