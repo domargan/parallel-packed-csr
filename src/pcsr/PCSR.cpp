@@ -60,7 +60,7 @@ int find_node(int index, int len) { return (index / len) * len; }
 // null overrides sentinel
 // e.g. in rebalance, we check if an edge is null
 // first before copying it into temp, then fix the sentinels.
-bool is_sentinel(edge_t e) { return e.dest == UINT32_MAX || e.value == UINT32_MAX; }
+bool is_sentinel(const edge_t &e) { return e.dest == UINT32_MAX || e.value == UINT32_MAX; }
 
 // bool is_null(edge_t e) { return e.value == 0; }
 
@@ -398,7 +398,7 @@ void PCSR::slide_left(int index, uint32_t src) {
 int find_leaf(edge_list_t *list, int index) { return (index / list->logN) * list->logN; }
 
 // true if e1, e2 are equals
-bool edge_equals(edge_t e1, edge_t e2) { return e1.dest == e2.dest && e1.value == e2.value; }
+bool edge_equals(const edge_t &e1, const edge_t &e2) { return e1.dest == e2.dest && e1.value == e2.value; }
 
 // return index of the edge elem
 // takes in edge list and place to start looking
