@@ -25,6 +25,10 @@ Run the `parallel-packed-csr` binary from your build directory.
 * `-delete`: deletes the edges from the update file from the core graph
 * `-core_graph=`: specifies the filename of the core graph
 * `-update_file=`: specifies the filename of the update file
+* Available partitioning strategies (if multiple strategies are given, the last one is used):
+  * `-ppcsr`: No partitioning
+  * `-pppcsr`: Partitioning (1 partition per NUMA domain)
+  * `-pppcsrnuma`: Partitioning with explicit NUMA optimizations (default)
 
 # Authors
 * Eleni Alevra
@@ -32,7 +36,7 @@ Run the `parallel-packed-csr` binary from your build directory.
 * Dom Margan 
 
 # References
-[1]
+<a id="1">[1]</a>
 Wheatman, B., & Xu, H. (2018).
 Packed Compressed Sparse Row: A Dynamic Graph
 Representation. 
