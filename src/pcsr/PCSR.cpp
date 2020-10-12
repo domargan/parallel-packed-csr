@@ -25,8 +25,9 @@ static inline int bsf_word(int word) {
   return result;
 }
 
-static inline int bsr_word(int word) {
-  int result;
+template <typename T>
+static inline T bsr_word(T word) {
+  T result;
   __asm__ volatile("bsr %1, %0" : "=r"(result) : "r"(word));
   return result;
 }
@@ -66,10 +67,9 @@ bool is_sentinel(const edge_t &e) { return e.dest == UINT32_MAX || e.value == UI
 
 void PCSR::resizeEdgeArray(size_t newSize) {
   edges.N = newSize;
-  edges.logN =
-      1 << (bsr_word(bsr_word(edges.N) +
-                     1));  //(edges.N < 64) ? std::max(1ul, edges.N) : 1 << (bsr_word(bsr_word(edges.N) + 1) + 1);
+  edges.logN = (1 << bsr_word(bsr_word(edges.N) * 2 + 1));
   edges.H = bsr_word(edges.N / edges.logN);
+  std::cout << "Edges: " << edges.N << " logN: " << edges.logN << " #count: " << edges.N / edges.logN << std::endl;
 }
 
 void PCSR::clear() {
@@ -774,7 +774,7 @@ void PCSR::remove_edge(uint32_t src, uint32_t dest) {
 
 PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain)
     : nodes(src_n), is_numa_available{numa_available() >= 0 && domain >= 0}, domain(domain) {
-  resizeEdgeArray(2 << bsr_word(init_n + src_n));
+  resizeEdgeArray(2 << bsr_word(std::max(init_n + src_n, 1024u)));
   edges.global_lock = make_shared<FastLock>();
 
   lock_bsearch = lock_search;
