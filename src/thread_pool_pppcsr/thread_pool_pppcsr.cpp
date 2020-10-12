@@ -94,6 +94,7 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
 
 // Submit an update for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
+  (void)thread_id;
   auto par = pcsr->get_partiton(src) / partitions_per_domain;
   auto index = (indeces[par]++) % numThreadsDomain[par];
   tasks[firstThreadDomain[par] + index].push(task{true, false, src, target});
@@ -101,6 +102,7 @@ void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
 
 // Submit a delete edge task for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_delete(int thread_id, int src, int target) {
+  (void)thread_id;
   auto par = pcsr->get_partiton(src) / partitions_per_domain;
   auto index = (indeces[par]++) % numThreadsDomain[par];
   tasks[firstThreadDomain[par] + index].push(task{false, false, src, target});
@@ -108,6 +110,7 @@ void ThreadPoolPPPCSR::submit_delete(int thread_id, int src, int target) {
 
 // Submit a read neighbourhood task for vertex src to thread with number thread_id
 void ThreadPoolPPPCSR::submit_read(int thread_id, int src) {
+  (void)thread_id;
   auto par = pcsr->get_partiton(src) / partitions_per_domain;
   auto index = (indeces[par]++) % numThreadsDomain[par];
   tasks[firstThreadDomain[par] + index].push(task{false, true, src, src});

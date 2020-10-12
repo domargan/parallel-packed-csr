@@ -137,7 +137,7 @@ class PCSR {
 
   void redistribute(int index, int len);
   bool got_correct_insertion_index(edge_t ins_edge, uint32_t src, uint32_t index, edge_t elem, int node_index,
-                                   int node_id, uint32_t &max_node, uint32_t &min_node);
+                                   int node_id, uint32_t &max_node);
   pair<pair<int, int>, insertion_info_t *> acquire_insert_locks(uint32_t index, edge_t elem, uint32_t src,
                                                                 int ins_node_v, uint32_t left_node_bound, int tries);
   pair<int, int> acquire_remove_locks(uint32_t index, edge_t elem, uint32_t src, int ins_node_v,

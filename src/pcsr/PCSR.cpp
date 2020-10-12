@@ -66,7 +66,9 @@ bool is_sentinel(const edge_t &e) { return e.dest == UINT32_MAX || e.value == UI
 
 void PCSR::resizeEdgeArray(size_t newSize) {
   edges.N = newSize;
-  edges.logN = (edges.N < 64)? std::max(1, edges.N) : 1 << (bsr_word(bsr_word(edges.N) + 1)+1);
+  edges.logN =
+      1 << (bsr_word(bsr_word(edges.N) +
+                     1));  //(edges.N < 64) ? std::max(1ul, edges.N) : 1 << (bsr_word(bsr_word(edges.N) + 1) + 1);
   edges.H = bsr_word(edges.N / edges.logN);
 }
 
@@ -106,7 +108,7 @@ uint64_t PCSR::get_size() {
 void PCSR::print_array() {
   for (uint64_t i = 0; i < edges.N; i++) {
     if (is_null(edges.items[i].value)) {
-      printf("%d-x ", i);
+      cout << i << "-x ";
     } else if (is_sentinel(edges.items[i])) {
       uint32_t value = edges.items[i].value;
       if (value == UINT32_MAX) {
@@ -236,7 +238,7 @@ void PCSR::redistribute(int index, int len) {
   double index_d = index + static_cast<double>(j - 1) * step;
 
   // Ignore element at position index since it is already in the correct position
-  for (size_t i = index + j - 1; i > index; i--) {
+  for (auto i = index + j - 1; i > index; i--) {
     const size_t in = static_cast<size_t>(index_d);
 
     std::swap(edges.items[in], edges.items[i]);
@@ -787,7 +789,7 @@ PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain)
     edges.items = (edge_t *)malloc(edges.N * sizeof(*(edges.items)));
   }
 
-  for (int i = 0; i < edges.N / edges.logN; i++) {
+  for (uint32_t i = 0; i < edges.N / edges.logN; i++) {
     edges.node_locks[i] = new HybridLock();
   }
 
@@ -795,7 +797,7 @@ PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain)
   const double step = ((double)edges.N) / src_n;
   int in = 0;
 
-  for (int i = 0; i < src_n; i++) {
+  for (uint32_t i = 0; i < src_n; i++) {
     if (i == 0) {
       nodes[i].beginning = 0;
     } else {
@@ -836,18 +838,15 @@ PCSR::PCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int domain)
 }
 
 PCSR::~PCSR() {
+  for (uint32_t i = 0; i < (edges.N / edges.logN); i++) {
+    delete edges.node_locks[i];
+  }
   if (is_numa_available) {
-    numa_free(edges.items, edges.N * sizeof(*(edges.items)));
-    for (int i = 0; i < (edges.N / edges.logN); i++) {
-      delete edges.node_locks[i];
-    }
     numa_free(edges.node_locks, (edges.N / edges.logN) * sizeof(HybridLock *));
+    numa_free(edges.items, edges.N * sizeof(*(edges.items)));
   } else {
-    free(edges.items);
-    for (int i = 0; i < (edges.N / edges.logN); i++) {
-      delete edges.node_locks[i];
-    }
     free(edges.node_locks);
+    free(edges.items);
   }
 }
 
@@ -864,7 +863,7 @@ bool PCSR::edge_exists(uint32_t src, uint32_t dest) {
   edge_t e;
   e.dest = dest;
   e.value = 1;
-  uint32_t loc_to_rem = binary_search(&e, node.beginning + 1, node.end, false).first;
+  auto loc_to_rem = binary_search(&e, node.beginning + 1, node.end, false).first;
   e = edges.items[loc_to_rem];
   return !(is_null(e.value)) && !is_sentinel(e) && e.dest == dest;
 }
@@ -1000,7 +999,7 @@ pair<pair<int, int>, insertion_info_t *> PCSR::acquire_insert_locks(uint32_t ind
     // We didn't lock during binary search so we might have gotten back a wrong index, need to check and if it's wrong
     // re-try
     auto ins_edge = edges.items[index];
-    if (!got_correct_insertion_index(ins_edge, src, index, elem, node_index, node_id, max_node, min_node)) {
+    if (!got_correct_insertion_index(ins_edge, src, index, elem, node_index, node_id, max_node)) {
       for (int i = min_node; i <= max_node; i++) {
         edges.node_locks[i]->unlock();
       }
@@ -1166,7 +1165,7 @@ pair<int, int> PCSR::acquire_remove_locks(uint32_t index, edge_t elem, uint32_t 
     edges.node_locks[node_id]->lock();
     //    got_locks++;
   }
-  if (!got_correct_insertion_index(edges.items[index], src, index, elem, node_index, node_id, max_node, min_node)) {
+  if (!got_correct_insertion_index(edges.items[index], src, index, elem, node_index, node_id, max_node)) {
     release_locks_no_inc(make_pair(min_node, max_node));
     //    retries++;
     return make_pair(NEED_RETRY, NEED_RETRY);
@@ -1309,7 +1308,7 @@ int PCSR::count_elems(int index, int len) {
 // Returns true if the given edge should be inserted in index
 // Added by Eleni Alevra
 bool PCSR::got_correct_insertion_index(edge_t ins_edge, uint32_t src, uint32_t index, edge_t elem, int node_index,
-                                       int node_id, uint32_t &max_node, uint32_t &min_node) {
+                                       int node_id, uint32_t &max_node) {
   // Check that we are in the right neighbourhood
   if (!(is_null(ins_edge.value)) &&
       ((is_sentinel(ins_edge) && src != nodes.size() - 1 && ins_edge.src != src + 1) ||
@@ -1445,16 +1444,24 @@ void PCSR::add_edge_parallel(uint32_t src, uint32_t dest, uint32_t value, int re
   }
 }
 
-void PCSR::insert_nodes_and_edges_front(std::vector<node_t> new_nodes, std::vector<edge_t> new_edges) {}
+void PCSR::insert_nodes_and_edges_front(std::vector<node_t> new_nodes, std::vector<edge_t> new_edges) {
+  (void)new_nodes;
+  (void)new_edges;
+}
 
-void PCSR::insert_nodes_and_edges_back(std::vector<node_t> new_nodes, std::vector<edge_t> new_edges) {}
+void PCSR::insert_nodes_and_edges_back(std::vector<node_t> new_nodes, std::vector<edge_t> new_edges) {
+  (void)new_nodes;
+  (void)new_edges;
+}
 
 std::pair<std::vector<node_t>, std::vector<edge_t>> PCSR::remove_nodes_and_edges_front(int num_nodes) {
+  (void)num_nodes;
   std::vector<node_t> exported_nodes;
   std::vector<edge_t> exported_edges;
   return make_pair(exported_nodes, exported_edges);
 }
 std::pair<std::vector<node_t>, std::vector<edge_t>> PCSR::remove_nodes_and_edges_back(int num_nodes) {
+  (void)num_nodes;
   std::vector<node_t> exported_nodes;
   std::vector<edge_t> exported_edges;
   return make_pair(exported_nodes, exported_edges);

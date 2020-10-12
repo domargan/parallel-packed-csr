@@ -14,10 +14,10 @@ using namespace std;
 
 template <typename T, typename weight_t>
 vector<weight_t> pagerank(T &graph, std::vector<weight_t> const &node_values) {
-  uint64_t n = graph.get_n();
+  auto n = graph.get_n();
 
   vector<weight_t> output(n, 0);
-  for (int i = 0; i < n; i++) {
+  for (uint64_t i = 0; i < n; i++) {
     const weight_t contrib = (node_values[i] / graph.getNode(i).num_neighbors);
 
     // get neighbors

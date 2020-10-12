@@ -55,7 +55,7 @@ TEST_P(DataStructureTest, add_remove_edge_1E4_seq) {
     pcsr.add_edge(0, i, i);
     EXPECT_TRUE(pcsr.edge_exists(0, i)) << i;
     // Check whether all locks were released
-    for (int j = 0; j < pcsr.edges.N / pcsr.edges.logN; ++j) {
+    for (uint32_t j = 0; j < pcsr.edges.N / pcsr.edges.logN; ++j) {
       EXPECT_TRUE(pcsr.edges.node_locks[j]->lockable())
           << "Current iteration: " << i << " lock id: " << j;
     }
@@ -68,7 +68,7 @@ TEST_P(DataStructureTest, add_remove_edge_1E4_seq) {
     pcsr.remove_edge(0, i);
     EXPECT_FALSE(pcsr.edge_exists(0, i)) << i;
     // Check whether all locks were released
-    for (int j = 0; j < pcsr.edges.N / pcsr.edges.logN; ++j) {
+    for (uint32_t j = 0; j < pcsr.edges.N / pcsr.edges.logN; ++j) {
       EXPECT_TRUE(pcsr.edges.node_locks[j]->lockable())
           << "Current iteration: " << i << " lock id: " << j;
     }
@@ -93,7 +93,7 @@ TEST_P(DataStructureTest, add_remove_edge_1E5_par) {
   }
 
   // Check whether all locks were released
-  for (int j = 0; j < pcsr.edges.N / pcsr.edges.logN; ++j) {
+  for (uint32_t j = 0; j < pcsr.edges.N / pcsr.edges.logN; ++j) {
     EXPECT_TRUE(pcsr.edges.node_locks[j]->lockable()) << "Lock id: " << j;
   }
   EXPECT_TRUE(pcsr.edges.global_lock->lockable());
@@ -111,7 +111,7 @@ TEST_P(DataStructureTest, add_remove_edge_1E5_par) {
     pcsr.edges.global_lock->unregisterThread();
   }
   // Check whether all locks were released
-  for (int j = 0; j < pcsr.edges.N / pcsr.edges.logN; ++j) {
+  for (uint32_t j = 0; j < pcsr.edges.N / pcsr.edges.logN; ++j) {
     EXPECT_TRUE(pcsr.edges.node_locks[j]->lockable()) << "Lock id: " << j;
   }
   EXPECT_TRUE(pcsr.edges.global_lock->lockable());
@@ -135,7 +135,7 @@ TEST_P(DataStructureTest, add_remove_edge_random_2E4_seq) {
           << "Delete: " << src << " " << target;
     }
     // Check whether all locks were released
-    for (int j = 0; j < pcsr.edges.N / pcsr.edges.logN; ++j) {
+    for (uint32_t j = 0; j < pcsr.edges.N / pcsr.edges.logN; ++j) {
       ASSERT_TRUE(pcsr.edges.node_locks[j]->lockable())
           << "Current iteration: " << i << " lock id: " << j;
     }
@@ -167,7 +167,7 @@ TEST_P(DataStructureTest, add_remove_edge_random_2E4_par) {
   }
 
   // Check whether all locks were released
-  for (int j = 0; j < pcsr.edges.N / pcsr.edges.logN; ++j) {
+  for (uint32_t j = 0; j < pcsr.edges.N / pcsr.edges.logN; ++j) {
     EXPECT_TRUE(pcsr.edges.node_locks[j]->lockable()) << "Lock id: " << j;
   }
   EXPECT_TRUE(pcsr.edges.global_lock->lockable());
