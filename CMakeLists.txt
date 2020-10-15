@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.8 FATAL_ERROR)#
+cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 project(parallel-packed-csr VERSION 0.1 LANGUAGES CXX)
@@ -33,13 +33,6 @@ list(REMOVE_DUPLICATES parallel-packed-csr_INCLUDE_DIRS)
 
 add_executable(parallel-packed-csr ${parallel-packed-csr_SOURCES})
 target_include_directories(parallel-packed-csr PRIVATE ${parallel-packed-csr_INCLUDE_DIRS})
-
-#set(Boost_INCLUDE_DIR /opt/boost/include)
-#set(Boost_LIBRARY_DIR /opt/boost/lib)
-#find_package(Boost COMPONENTS system filesystem iostreams REQUIRED)
-#include_directories(${Boost_INCLUDE_DIR})
-#link_directories(${Boost_LIBRARY_DIR})
-#target_link_libraries(parallel-packed-csr ${Boost_LIBRARIES})
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
