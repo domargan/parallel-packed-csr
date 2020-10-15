@@ -89,6 +89,21 @@ void execute(int threads, int size, const vector<tuple<Operation, int, int>> &co
   update_existing_graph(core_graph, thread_pool.get(), threads, core_graph.size());
   // Do updates
   update_existing_graph(updates, thread_pool.get(), threads, size);
+
+  //    DEBUGGING CODE
+  //    Check that all edges are there and in sorted order
+  //    for (int i = 0; i < core_graph.size(); i++) {
+  //        if (!thread_pool->pcsr->edge_exists(std::get<1>(core_graph[i]),std::get<2>(core_graph[i]))) {
+  //            cout << "Not there " <<  std::get<1>(core_graph[i]) << " " <<
+  //                 std::get<2>(core_graph[i]) << endl;
+  //        }
+  //    }
+  //    for (int i = 0; i < size; i++) {
+  //        if (!thread_pool->pcsr->edge_exists(std::get<1>(updates[i]), std::get<2>(updates[i]))) {
+  //            cout << "Update not there " << std::get<1>(updates[i]) << " " <<
+  //                 std::get<2>(updates[i]) << endl;
+  //        }
+  //    }
 }
 
 enum class Version { PPCSR, PPPCSR, PPPCSRNUMA };
@@ -153,36 +168,22 @@ int main(int argc, char *argv[]) {
   //   sort(core_graph.begin(), core_graph.end());
   switch (v) {
     case Version::PPCSR: {
-      auto thread_pool = make_unique<ThreadPool>(threads, lock_search, num_nodes, partitions_per_domain);
+      auto thread_pool = make_unique<ThreadPool>(threads, lock_search, num_nodes + 1, partitions_per_domain);
       execute(threads, size, core_graph, updates, thread_pool);
       break;
     }
     case Version::PPPCSR: {
-      auto thread_pool = make_unique<ThreadPoolPPPCSR>(threads, lock_search, num_nodes, partitions_per_domain, false);
+      auto thread_pool =
+          make_unique<ThreadPoolPPPCSR>(threads, lock_search, num_nodes + 1, partitions_per_domain, false);
       execute(threads, size, core_graph, updates, thread_pool);
       break;
     }
     default: {
-      auto thread_pool = make_unique<ThreadPoolPPPCSR>(threads, lock_search, num_nodes, partitions_per_domain, true);
+      auto thread_pool =
+          make_unique<ThreadPoolPPPCSR>(threads, lock_search, num_nodes + 1, partitions_per_domain, true);
       execute(threads, size, core_graph, updates, thread_pool);
     }
   }
-
-  // DEBUGGING CODE
-  // Check that all edges are there and in sorted order
-  //     for (int i = 0; i < core_graph.size(); i++) {
-  //       if (!thread_pool->pcsr->edge_exists(core_graph[i].first, core_graph[i].second)) {
-  //         cout << "Not there " << core_graph[i].first << " " << core_graph[i].second << endl;
-  //       }
-  //     }
-  //        for (int i = 0; i < size; i++) {
-  //          if (!thread_pool->pcsr->edge_exists(updates[i].first, updates[i].second)) {
-  //            cout << "Not there" << endl;
-  //          }
-  //        }
-  //     if (!thread_pool->pcsr->is_sorted()) {
-  //       cout << "Not sorted" << endl;
-  //     }
 
   return 0;
 }
