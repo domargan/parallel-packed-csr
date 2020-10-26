@@ -119,19 +119,19 @@ void ThreadPoolPPPCSR::start(int threads) {
   for (int i = 1; i < threads; i++) {
     thread_pool.push_back(thread(&ThreadPoolPPPCSR::execute<false>, this, i));
     // Pin thread to core
-    //    cpu_set_t cpuset;
-    //    CPU_ZERO(&cpuset);
-    //    CPU_SET((i * 4), &cpuset);
-    //    if (i >= 4) {
-    //      CPU_SET(1 + (i * 4), &cpuset);
-    //    } else {
-    //      CPU_SET(i * 4, &cpuset);
-    //    }
-    //    int rc = pthread_setaffinity_np(thread_pool.back().native_handle(),
-    //                                    sizeof(cpu_set_t), &cpuset);
-    //    if (rc != 0) {
-    //      cout << "error pinning thread" << endl;
-    //    }
+      //  cpu_set_t cpuset;
+      //  CPU_ZERO(&cpuset);
+      //  CPU_SET((i * 4), &cpuset);
+      //  if (i >= 4) {
+      //    CPU_SET(1 + (i * 4), &cpuset);
+      //  } else {
+      //    CPU_SET(i * 4, &cpuset);
+      //  }
+      //  int rc = pthread_setaffinity_np(thread_pool.back().native_handle(),
+      //                                  sizeof(cpu_set_t), &cpuset);
+      //  if (rc != 0) {
+      //    cout << "error pinning thread" << endl;
+      //  }
   }
   execute<true>(0);
 }
