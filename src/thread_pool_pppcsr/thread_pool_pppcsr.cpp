@@ -19,7 +19,8 @@ using namespace std;
  */
 ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes,
                                    int partitions_per_domain, bool use_numa)
-    : tasks(NUM_OF_THREADS),
+    : //tasks(NUM_OF_THREADS),
+      tasks(numa_max_node() + 1),
       finished(false),
       available_nodes(std::min(numa_max_node() + 1, NUM_OF_THREADS)),
       indeces(available_nodes, 0),
@@ -52,17 +53,23 @@ ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, u
 // Finishes when finished is set to true and there are no outstanding tasks
 template <bool isMasterThread>
 void ThreadPoolPPPCSR::execute(const int thread_id) {
-  cout << "Thread " << thread_id << " has " << tasks.size() << " tasks, runs on domain "
+  // cout << "Thread " << thread_id << " has " << tasks.size() << " tasks, runs on domain "
+  //      << threadToDomain[thread_id] << endl;
+  cout << "Thread " << thread_id << " has " << tasks[thread_id % available_nodes].size() << " tasks, runs on domain "
        << threadToDomain[thread_id] << endl;
   if (numa_available() >= 0) {
     numa_run_on_node(threadToDomain[thread_id]);
   }
   int registered = -1;
 
-  while (!tasks.empty() || (!isMasterThread && !finished)) {
-    if (!tasks.empty()) {
-      task t = tasks.front();
-      tasks.pop();
+  // while (!tasks.empty() || (!isMasterThread && !finished)) {
+  //   if (!tasks.empty()) {
+  //     task t = tasks.front();
+  //     tasks.pop();
+    while (!tasks[thread_id % available_nodes].empty() || (!isMasterThread && !finished)) {
+    if (!tasks[thread_id % available_nodes].empty()) {
+      task t = tasks[thread_id % available_nodes].front();
+      // tasks.pop();
 
       int currentPar = pcsr->get_partiton(t.src);
 
@@ -95,19 +102,22 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
 // Submit an update for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
   (void)thread_id;
-  tasks.push(task{true, false, src, target});
+  // tasks.push(task{true, false, src, target});
+  tasks[thread_id % available_nodes].push(task{true, false, src, target});
 }
 
 // Submit a delete edge task for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_delete(int thread_id, int src, int target) {
   (void)thread_id;
-  tasks.push(task{false, false, src, target});
+  // tasks.push(task{false, false, src, target});
+  tasks[thread_id % available_nodes].push(task{false, false, src, target});
 }
 
 // Submit a read neighbourhood task for vertex src to thread with number thread_id
 void ThreadPoolPPPCSR::submit_read(int thread_id, int src) {
   (void)thread_id;
-  tasks.push(task{false, true, src, src});
+  // tasks.push(task{false, true, src, src});
+  tasks[thread_id % available_nodes].push(task{false, true, src, src});
 }
 
 // starts a new number of threads
