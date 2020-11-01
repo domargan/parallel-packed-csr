@@ -1356,10 +1356,10 @@ public:
         try_dequeue(item);
         return item;
     }
-    void pop(){
-        T item;
-        try_dequeue(item);
-    }
+    // void pop(){
+    //     T item;
+    //     try_dequeue(item);
+    // }
 	
        private:
 	friend struct ProducerToken;

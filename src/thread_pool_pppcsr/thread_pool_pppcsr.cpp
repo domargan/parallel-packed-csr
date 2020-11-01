@@ -62,7 +62,7 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
   while (!tasks.empty() || (!isMasterThread && !finished)) {
     if (!tasks.empty()) {
       task t = tasks.front();
-      tasks.pop();
+      // tasks.pop();
 
       int currentPar = pcsr->get_partiton(t.src);
 
