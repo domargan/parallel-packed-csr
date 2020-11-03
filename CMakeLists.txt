@@ -4,7 +4,7 @@ set(CMAKE_VERBOSE_MAKEFILE ON)
 project(parallel-packed-csr VERSION 0.1 LANGUAGES CXX)
 
 if (NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
+    set(CMAKE_BUILD_TYPE RelWithDebInfo)
 endif ()
 
 set(CMAKE_CXX_STANDARD 14)
