@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
+include(ExternalProject)
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 project(parallel-packed-csr VERSION 0.1 LANGUAGES CXX)
@@ -13,6 +14,11 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 set(PROJECT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/src)
+
+ExternalProject_Add(googlebenchmark
+	URL "https://github.com/google/benchmark/archive/v1.5.0.tar.gz"
+	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${parallel-packed-csr_BINARY_DIR}/deps -DBENCHMARK_DOWNLOAD_DEPENDENCIES=ON -DBENCHMARK_ENABLE_GTEST_TESTS=OFF -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+  )
 
 file(GLOB_RECURSE parallel-packed-csr_SOURCES "${PROJECT_SOURCE_DIR}/*.cpp")
 file(GLOB_RECURSE parallel-packed-csr_HEADERS "${PROJECT_SOURCE_DIR}/*.h")
@@ -37,6 +43,11 @@ target_include_directories(parallel-packed-csr PRIVATE ${parallel-packed-csr_INC
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 target_link_libraries(parallel-packed-csr PRIVATE Threads::Threads numa)
+
+add_dependencies(parallel-packed-csr googlebenchmark)
+target_link_libraries(parallel-packed-csr PRIVATE ${parallel-packed-csr_BINARY_DIR}/deps/lib/${CMAKE_SHARED_LIBRARY_PREFIX}benchmark.a)
+target_link_libraries(parallel-packed-csr PRIVATE ${parallel-packed-csr_BINARY_DIR}/deps/lib/${CMAKE_SHARED_LIBRARY_PREFIX}benchmark_main.a)
+target_include_directories(parallel-packed-csr SYSTEM PUBLIC ${parallel-packed-csr_BINARY_DIR}/deps/include)
 
 list(REMOVE_ITEM parallel-packed-csr_SOURCES ${PROJECT_SOURCE_DIR}/main.cpp)
 add_executable(tests ${parallel-packed-csr_SOURCES} ${parallel-packed-csr_TEST_SOURCES})

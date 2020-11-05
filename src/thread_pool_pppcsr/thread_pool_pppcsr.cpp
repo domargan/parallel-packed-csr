@@ -52,8 +52,8 @@ ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, u
 // Finishes when finished is set to true and there are no outstanding tasks
 template <bool isMasterThread>
 void ThreadPoolPPPCSR::execute(const int thread_id) {
-  cout << "Thread " << thread_id << " has " << tasks[thread_id].size() << " tasks, runs on domain "
-       << threadToDomain[thread_id] << endl;
+  // cout << "Thread " << thread_id << " has " << tasks[thread_id].size() << " tasks, runs on domain "
+      //  << threadToDomain[thread_id] << endl;
   if (numa_available() >= 0) {
     numa_run_on_node(threadToDomain[thread_id]);
   }
@@ -148,9 +148,9 @@ void ThreadPoolPPPCSR::stop() {
   finished = true;
   for (auto &&t : thread_pool) {
     if (t.joinable()) t.join();
-    cout << "Done" << endl;
+    // cout << "Done" << endl;
   }
   end = chrono::steady_clock::now();
-  cout << "Elapsed wall clock time: " << chrono::duration_cast<chrono::milliseconds>(end - s).count() << endl;
+  // cout << "Elapsed wall clock time: " << chrono::duration_cast<chrono::milliseconds>(end - s).count() << endl;
   thread_pool.clear();
 }
