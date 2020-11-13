@@ -33,8 +33,7 @@ class ThreadPoolPPPCSR {
  private:
   vector<thread> thread_pool;
   vector<moodycamel::ConcurrentQueue<task>> tasks;
-  // moodycamel::ConcurrentQueue<task> tasks;
-  // atomic_queue::AtomicQueueB2<task> tasks;
+  size_t numberOfQueues;
   chrono::steady_clock::time_point s;
   chrono::steady_clock::time_point end;
   std::atomic_bool finished;
@@ -46,6 +45,7 @@ class ThreadPoolPPPCSR {
   std::vector<unsigned> indeces;
   int partitions_per_domain = 1;
   std::vector<int> threadToDomain;
+  std::vector<int> threadToPartition;
   std::vector<int> firstThreadDomain;
   std::vector<int> numThreadsDomain;
 };
