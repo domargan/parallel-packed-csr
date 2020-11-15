@@ -100,6 +100,34 @@ void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
   tasks[queue_id].push(task{true, false, src, target});
 }
 
+// Submit an update for edge {src, target} to thread with number thread_id
+void ThreadPoolPPPCSR::submit_bulk_update(const vector<tuple<Operation, int, int>> &input, size_t count, size_t numberOfThreads){
+  vector<vector<task>> partitions(numberOfQueues);
+  for (int i = 0; i < count; i++) {
+    auto src = get<1>(input[i]);
+    auto target = get<2>(input[i]);
+    auto par = pcsr->get_partiton(src);
+    auto queue_id = par % numberOfQueues;
+    switch (get<0>(input[i])) {
+      case Operation::ADD:
+        partitions[queue_id].emplace_back(task{true, false, src, target});
+        threadToPartition[i % numberOfThreads] = queue_id;
+        break;
+      case Operation::DELETE:
+        partitions[queue_id].emplace_back(task{false, false, src, target});
+        threadToPartition[i % numberOfThreads] = queue_id;
+        break;
+      case Operation::READ:
+        cerr << "Not implemented\n";
+        break;
+    }
+  }
+
+  for (auto i = 0; i < numberOfQueues; i++){
+    tasks[i].enqueue_bulk(partitions[i].begin(), partitions[i].size());
+  }
+}
+
 // Submit a delete edge task for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_delete(int thread_id, int src, int target) {
   auto par = pcsr->get_partiton(src);

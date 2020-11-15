@@ -23,7 +23,7 @@
 
 using namespace std;
 
-enum class Operation { READ, ADD, DELETE };
+// enum class Operation { READ, ADD, DELETE };
 
 // Reads edge list with separator
 pair<vector<tuple<Operation, int, int>>, int> read_input(string filename, Operation defaultOp) {
@@ -65,19 +65,7 @@ pair<vector<tuple<Operation, int, int>>, int> read_input(string filename, Operat
 template <typename ThreadPool_t>
 void update_existing_graph(const vector<tuple<Operation, int, int>> &input, ThreadPool_t *thread_pool, int threads,
                            int size) {
-  for (int i = 0; i < size; i++) {
-    switch (get<0>(input[i])) {
-      case Operation::ADD:
-        thread_pool->submit_add(i % threads, get<1>(input[i]), get<2>(input[i]));
-        break;
-      case Operation::DELETE:
-        thread_pool->submit_delete(i % threads, get<1>(input[i]), get<2>(input[i]));
-        break;
-      case Operation::READ:
-        cerr << "Not implemented\n";
-        break;
-    }
-  }
+  thread_pool->submit_bulk_update(input, size, threads);
   thread_pool->start(threads);
   thread_pool->stop();
 }

@@ -14,6 +14,8 @@ using namespace std;
 #ifndef PCSR2_PCSR_H
 #define PCSR2_PCSR_H
 
+enum class Operation { READ, ADD, DELETE };
+
 /** Types */
 typedef struct _node {
   // beginning and end of the associated region in the edge list
