@@ -147,8 +147,8 @@ void ThreadPoolPPPCSR::submit_read(int thread_id, int src) {
 // starts a new number of threads
 // number of threads is passed to the constructor
 void ThreadPoolPPPCSR::start(int threads) {
-  s = chrono::steady_clock::now();
-  finished = false;
+  // s = chrono::steady_clock::now();
+  // finished = false;
 
   for (int i = 1; i < threads; i++) {
     thread_pool.push_back(thread(&ThreadPoolPPPCSR::execute<false>, this, i));
@@ -176,9 +176,9 @@ void ThreadPoolPPPCSR::stop() {
   finished = true;
   for (auto &&t : thread_pool) {
     if (t.joinable()) t.join();
-    cout << "Done" << endl;
+    // cout << "Done" << endl;
   }
-  end = chrono::steady_clock::now();
-  cout << "Elapsed wall clock time: " << chrono::duration_cast<chrono::milliseconds>(end - s).count() << endl;
+  // end = chrono::steady_clock::now();
+  // cout << "Elapsed wall clock time: " << chrono::duration_cast<chrono::milliseconds>(end - s).count() << endl;
   thread_pool.clear();
 }
