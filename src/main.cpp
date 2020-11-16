@@ -192,7 +192,14 @@ template <typename ThreadPoolType, const char* version, const char* UpdateType> 
   int temp = 0;
   std::tie(core_graph, temp) = read_input(core_graph_filename, Operation::ADD);
   num_nodes = std::max(num_nodes, temp);
-  string update_filename = "/home/ak10318/PPCSR/parallel-packed-csr/data/update_files/insertions.txt";
+  
+  auto update_filename = map<string, string>(
+    {
+      {"INSERT", "/home/ak10318/PPCSR/parallel-packed-csr/data/update_files/insertions.txt"}, 
+      {"DELETE", "/home/ak10318/PPCSR/parallel-packed-csr/data/update_files/deletions.txt"}
+    }
+  ).at(UpdateType);
+
   std::tie(updates, temp) = read_input(update_filename, updateType);
   num_nodes = std::max(num_nodes, temp);
   size = std::min((size_t)size, updates.size());
@@ -237,7 +244,7 @@ static const char DELETE[] = "DELETE";
 static const char PPPCSRNUMA[] = "PPPCSRNUMA";
 
 BENCHMARK_TEMPLATE(Benchmark_PPPCSR, ThreadPoolPPPCSR, PPPCSRNUMA, INSERT)->Unit(benchmark::kMillisecond);
-// BENCHMARK_TEMPLATE(Benchmark_PPPCSR, "PPPCSRNUMA", ThreadPoolPPPCSR, false)->Unit(benchmark::kMillisecond);
+BENCHMARK_TEMPLATE(Benchmark_PPPCSR, ThreadPoolPPPCSR, PPPCSRNUMA, DELETE)->Unit(benchmark::kMillisecond);
 // BENCHMARK_TEMPLATE(Benchmark, Version::PPPCSR, true)->Unit(benchmark::kMillisecond);
 // BENCHMARK_TEMPLATE(Benchmark, Version::PPPCSR, false)->Unit(benchmark::kMillisecond);
 // BENCHMARK_TEMPLATE(Benchmark, Version::PPCSR, true)->Unit(benchmark::kMillisecond);
