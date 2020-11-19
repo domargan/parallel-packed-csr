@@ -59,6 +59,12 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
   }
   int registered = -1;
   auto queue_id = threadToPartition[thread_id];
+  auto queueCounter = 1;
+
+  while (tasks[queue_id].empty() && queueCounter < numberOfQueues){
+    queue_id = (queue_id + 1) % numberOfQueues;
+    queueCounter++;
+  }
 
   while (!tasks[queue_id].empty() || (!isMasterThread && !finished)) {
     if (!tasks[queue_id].empty()) {
@@ -81,10 +87,14 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
         pcsr->read_neighbourhood(t.src);
       }
     } else {
-      if (registered != -1) {
-        pcsr->unregisterThread(registered);
-        registered = -1;
-      }
+        if (registered != -1) {
+          pcsr->unregisterThread(registered);
+          registered = -1;
+        }
+        while (tasks[queue_id].empty() && queueCounter < numberOfQueues){
+          queue_id = (queue_id + 1) % numberOfQueues;
+          queueCounter++;
+        }
     }
   }
   if (registered != -1) {
