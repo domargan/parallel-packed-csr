@@ -5,7 +5,7 @@ include(ExternalProject)
 project(parallel-packed-csr VERSION 0.1 LANGUAGES CXX)
 
 if (NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE RelWithDebInfo)
+    set(CMAKE_BUILD_TYPE Release)
 endif ()
 
 set(CMAKE_CXX_STANDARD 14)

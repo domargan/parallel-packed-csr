@@ -69,7 +69,19 @@ pair<vector<tuple<Operation, int, int>>, int> read_input(string filename, Operat
 template <typename ThreadPool_t>
 void update_existing_graph(const vector<tuple<Operation, int, int>> &input, ThreadPool_t *thread_pool, int threads,
                            int size) {
-  thread_pool->submit_bulk_update(input, size, threads);
+  for (int i = 0; i < size; i++) {
+    switch (get<0>(input[i])) {
+      case Operation::ADD:
+        thread_pool->submit_add(i % threads, get<1>(input[i]), get<2>(input[i]));
+        break;
+      case Operation::DELETE:
+        thread_pool->submit_delete(i % threads, get<1>(input[i]), get<2>(input[i]));
+        break;
+      case Operation::READ:
+        cerr << "Not implemented\n";
+        break;
+    }
+  }
   thread_pool->start(threads);
   thread_pool->stop();
 }
@@ -181,80 +193,3 @@ int main(int argc, char *argv[]) {
 
   return 0;
 }
-
-// template <typename ThreadPoolType, const char* version, const char* UpdateType> static void Benchmark_PPPCSR(benchmark::State &state) {
-//   int threads = 8;
-//   int size = 1000000;
-//   int num_nodes = 0;
-//   bool lock_search = true;
-//   int partitions_per_domain = 1;
-//   vector<tuple<Operation, int, int>> core_graph;
-//   vector<tuple<Operation, int, int>> updates;
-
-//   auto insert = map<string, bool>({{"INSERT", true}, {"DELETE", false}}).at(UpdateType);
-
-//   Operation updateType = insert ? Operation::ADD : Operation::DELETE;
-
-//   string core_graph_filename = "/home/ak10318/PPCSR/parallel-packed-csr/data/shuffled_higgs.txt";
-//   int temp = 0;
-//   std::tie(core_graph, temp) = read_input(core_graph_filename, Operation::ADD);
-//   num_nodes = std::max(num_nodes, temp);
-  
-//   auto update_filename = map<string, string>(
-//     {
-//       {"INSERT", "/home/ak10318/PPCSR/parallel-packed-csr/data/update_files/insertions.txt"}, 
-//       {"DELETE", "/home/ak10318/PPCSR/parallel-packed-csr/data/update_files/deletions.txt"}
-//     }
-//   ).at(UpdateType);
-
-//   std::tie(updates, temp) = read_input(update_filename, updateType);
-//   num_nodes = std::max(num_nodes, temp);
-//   size = std::min((size_t)size, updates.size());
-
-//   if (core_graph.empty()) {
-//     cout << "Core graph file not specified" << endl;
-//     exit(EXIT_FAILURE);
-//   }
-//   if (updates.empty()) {
-//     cout << "Updates file not specified" << endl;
-//     exit(EXIT_FAILURE);
-//   }
-
-//   auto thread_pool = make_unique<ThreadPoolType>(threads, lock_search, num_nodes + 1, partitions_per_domain, true);
-
-//   map<string, function<void(
-//                 benchmark::State &, 
-//                 int, 
-//                 int, 
-//                 const vector<tuple<Operation, int, int>>,
-//                 const vector<tuple<Operation, int, int>>,
-//                 std::unique_ptr<ThreadPoolType> &)
-//       >>(
-//     {
-//       {"PPPCSRNUMA", execute<ThreadPoolType>},
-//       // {Version::PPPCSR,},
-//       // {Version::PPCSR,}
-//     }
-//   ).at(version)(
-//           state, 
-//           threads, 
-//           size, 
-//           core_graph, 
-//           updates, 
-//           thread_pool
-//         );
-// }
-
-// static const char INSERT[] = "INSERT";
-// static const char DELETE[] = "DELETE";
-
-// static const char PPPCSRNUMA[] = "PPPCSRNUMA";
-
-// BENCHMARK_TEMPLATE(Benchmark_PPPCSR, ThreadPoolPPPCSR, PPPCSRNUMA, INSERT)->Unit(benchmark::kMillisecond);
-// BENCHMARK_TEMPLATE(Benchmark_PPPCSR, ThreadPoolPPPCSR, PPPCSRNUMA, DELETE)->Unit(benchmark::kMillisecond);
-// // BENCHMARK_TEMPLATE(Benchmark, Version::PPPCSR, true)->Unit(benchmark::kMillisecond);
-// // BENCHMARK_TEMPLATE(Benchmark, Version::PPPCSR, false)->Unit(benchmark::kMillisecond);
-// // BENCHMARK_TEMPLATE(Benchmark, Version::PPCSR, true)->Unit(benchmark::kMillisecond);
-// // BENCHMARK_TEMPLATE(Benchmark, Version::PPCSR, false)->Unit(benchmark::kMillisecond);
-
-// BENCHMARK_MAIN();
