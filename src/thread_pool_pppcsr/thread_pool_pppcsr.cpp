@@ -19,12 +19,14 @@ using namespace std;
  */
 ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes,
                                    int partitions_per_domain, bool use_numa)
-    : tasks(),
+    : numberOfQueues((numa_max_node() + 1) * partitions_per_domain),
+      tasks((numa_max_node() + 1) * partitions_per_domain),
       finished(false),
-      available_nodes(std::min(numa_max_node() + 1, NUM_OF_THREADS)),
+      available_nodes(numa_max_node() + 1),
       indeces(available_nodes, 0),
       partitions_per_domain(partitions_per_domain),
       threadToDomain(NUM_OF_THREADS),
+      threadToPartition(NUM_OF_THREADS),
       firstThreadDomain(available_nodes, 0),
       numThreadsDomain(available_nodes) {
   pcsr = new PPPCSR(init_num_nodes, init_num_nodes, lock_search, available_nodes, partitions_per_domain, use_numa);
@@ -56,10 +58,17 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
     numa_run_on_node(threadToDomain[thread_id]);
   }
   int registered = -1;
+  auto queue_id = threadToPartition[thread_id];
+  auto queueCounter = 1;
 
-  while (!tasks.empty() || (!isMasterThread && !finished)) {
-    if (!tasks.empty()) {
-      task t = tasks.front();
+  while (tasks[queue_id].empty() && queueCounter < numberOfQueues){
+    queue_id = (queue_id + 1) % numberOfQueues;
+    queueCounter++;
+  }
+
+  while (!tasks[queue_id].empty() || (!isMasterThread && !finished)) {
+    if (!tasks[queue_id].empty()) {
+      task t = tasks[queue_id].front();
 
       int currentPar = pcsr->get_partiton(t.src);
 
@@ -78,10 +87,14 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
         pcsr->read_neighbourhood(t.src);
       }
     } else {
-      if (registered != -1) {
-        pcsr->unregisterThread(registered);
-        registered = -1;
-      }
+        if (registered != -1) {
+          pcsr->unregisterThread(registered);
+          registered = -1;
+        }
+        while (tasks[queue_id].empty() && queueCounter < numberOfQueues){
+          queue_id = (queue_id + 1) % numberOfQueues;
+          queueCounter++;
+        }
     }
   }
   if (registered != -1) {
@@ -91,44 +104,78 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
 
 // Submit an update for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
-  (void)thread_id;
-  tasks.push(task{true, false, src, target});
+  auto par = pcsr->get_partiton(src);
+  auto queue_id = par % numberOfQueues;
+  threadToPartition[thread_id] = queue_id;
+  tasks[queue_id].push(task{true, false, src, target});
+}
+
+// Submit an update for edge {src, target} to thread with number thread_id
+void ThreadPoolPPPCSR::submit_bulk_update(const vector<tuple<Operation, int, int>> &input, size_t count, size_t numberOfThreads){
+  vector<vector<task>> partitions(numberOfQueues);
+  for (int i = 0; i < count; i++) {
+    auto src = get<1>(input[i]);
+    auto target = get<2>(input[i]);
+    auto par = pcsr->get_partiton(src);
+    auto queue_id = par % numberOfQueues;
+    switch (get<0>(input[i])) {
+      case Operation::ADD:
+        partitions[queue_id].emplace_back(task{true, false, src, target});
+        threadToPartition[i % numberOfThreads] = queue_id;
+        break;
+      case Operation::DELETE:
+        partitions[queue_id].emplace_back(task{false, false, src, target});
+        threadToPartition[i % numberOfThreads] = queue_id;
+        break;
+      case Operation::READ:
+        cerr << "Not implemented\n";
+        break;
+    }
+  }
+
+  for (auto i = 0; i < numberOfQueues; i++){
+    tasks[i].enqueue_bulk(partitions[i].begin(), partitions[i].size());
+  }
 }
 
 // Submit a delete edge task for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_delete(int thread_id, int src, int target) {
-  (void)thread_id;
-  tasks.push(task{false, false, src, target});
+  auto par = pcsr->get_partiton(src);
+  auto queue_id = par % numberOfQueues;
+  threadToPartition[thread_id] = queue_id;
+  tasks[queue_id].push(task{false, false, src, target});
 }
 
 // Submit a read neighbourhood task for vertex src to thread with number thread_id
 void ThreadPoolPPPCSR::submit_read(int thread_id, int src) {
-  (void)thread_id;
-  tasks.push(task{false, true, src, src});
+  auto par = pcsr->get_partiton(src);
+  auto queue_id = par % numberOfQueues;
+  threadToPartition[thread_id] = queue_id;
+  tasks[queue_id].push(task{false, true, src, src});
 }
 
 // starts a new number of threads
 // number of threads is passed to the constructor
 void ThreadPoolPPPCSR::start(int threads) {
   s = chrono::steady_clock::now();
-  finished = false;
+  // finished = false;
 
   for (int i = 1; i < threads; i++) {
     thread_pool.push_back(thread(&ThreadPoolPPPCSR::execute<false>, this, i));
     // Pin thread to core
-    //    cpu_set_t cpuset;
-    //    CPU_ZERO(&cpuset);
-    //    CPU_SET((i * 4), &cpuset);
-    //    if (i >= 4) {
-    //      CPU_SET(1 + (i * 4), &cpuset);
-    //    } else {
-    //      CPU_SET(i * 4, &cpuset);
-    //    }
-    //    int rc = pthread_setaffinity_np(thread_pool.back().native_handle(),
-    //                                    sizeof(cpu_set_t), &cpuset);
-    //    if (rc != 0) {
-    //      cout << "error pinning thread" << endl;
-    //    }
+      //  cpu_set_t cpuset;
+      //  CPU_ZERO(&cpuset);
+      //  CPU_SET((i * 4), &cpuset);
+      //  if (i >= 4) {
+      //    CPU_SET(1 + (i * 4), &cpuset);
+      //  } else {
+      //    CPU_SET(i * 4, &cpuset);
+      //  }
+      //  int rc = pthread_setaffinity_np(thread_pool.back().native_handle(),
+      //                                  sizeof(cpu_set_t), &cpuset);
+      //  if (rc != 0) {
+      //    cout << "error pinning thread" << endl;
+      //  }
   }
   execute<true>(0);
 }
@@ -139,7 +186,7 @@ void ThreadPoolPPPCSR::stop() {
   finished = true;
   for (auto &&t : thread_pool) {
     if (t.joinable()) t.join();
-    cout << "Done" << endl;
+    // cout << "Done" << endl;
   }
   end = chrono::steady_clock::now();
   cout << "Elapsed wall clock time: " << chrono::duration_cast<chrono::milliseconds>(end - s).count() << endl;

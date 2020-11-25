@@ -15,6 +15,8 @@ using namespace std;
 #ifndef PPPCSR_THREAD_POOL_H
 #define PPPCSR_THREAD_POOL_H
 
+// enum class Operation { READ, ADD, DELETE };
+
 class ThreadPoolPPPCSR {
  public:
   PPPCSR *pcsr;
@@ -26,12 +28,14 @@ class ThreadPoolPPPCSR {
   void submit_add(int thread_id, int src, int dest);     // submit task to thread {thread_id} to insert edge {src, dest}
   void submit_delete(int thread_id, int src, int dest);  // submit task to thread {thread_id} to delete edge {src, dest}
   void submit_read(int, int);  // submit task to thread {thread_id} to read the neighbourhood of vertex {src}
+  void submit_bulk_update(const vector<tuple<Operation, int, int>> &input, size_t count, size_t numberOfThreads);
   void start(int threads);     // start the threads
   void stop();                 // stop the threads
 
  private:
   vector<thread> thread_pool;
-  moodycamel::ConcurrentQueue<task> tasks;
+  vector<moodycamel::ConcurrentQueue<task>> tasks;
+  size_t numberOfQueues;
   chrono::steady_clock::time_point s;
   chrono::steady_clock::time_point end;
   std::atomic_bool finished;
@@ -43,6 +47,7 @@ class ThreadPoolPPPCSR {
   std::vector<unsigned> indeces;
   int partitions_per_domain = 1;
   std::vector<int> threadToDomain;
+  std::vector<int> threadToPartition;
   std::vector<int> firstThreadDomain;
   std::vector<int> numThreadsDomain;
 };
