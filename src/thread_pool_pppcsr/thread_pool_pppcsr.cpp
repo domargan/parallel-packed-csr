@@ -19,8 +19,10 @@ using namespace std;
  */
 ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes,
                                    int partitions_per_domain, bool use_numa)
-    : numberOfQueues((numa_max_node() + 1) * partitions_per_domain),
-      tasks((numa_max_node() + 1) * partitions_per_domain),
+    : numberOfQueues(min((numa_max_node() + 1) * partitions_per_domain, 
+                        NUM_OF_THREADS)),
+      tasks(min((numa_max_node() + 1) * partitions_per_domain, 
+                NUM_OF_THREADS)),
       finished(false),
       available_nodes(numa_max_node() + 1),
       indeces(available_nodes, 0),
@@ -62,6 +64,11 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
   auto queueCounter = 1;
 
   while (!tasks[queue_id].empty() || (!isMasterThread && !finished)) {
+    while(queueCounter < numberOfQueues && 
+            tasks[queue_id].empty()){
+        queue_id = (queue_id + 1) % numberOfQueues;
+        queueCounter++;
+    }
     if (!tasks[queue_id].empty()) {
       task t = tasks[queue_id].front();
 
