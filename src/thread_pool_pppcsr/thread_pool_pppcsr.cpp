@@ -19,10 +19,8 @@ using namespace std;
  */
 ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes,
                                    int partitions_per_domain, bool use_numa)
-    : numberOfQueues(min((numa_max_node() + 1) * partitions_per_domain, 
-                        NUM_OF_THREADS)),
-      tasks(min((numa_max_node() + 1) * partitions_per_domain, 
-                NUM_OF_THREADS)),
+    : numberOfQueues((numa_max_node() + 1) * partitions_per_domain * thread::hardware_concurrency()/(numa_max_node() + 1)),
+      tasks((numa_max_node() + 1) * partitions_per_domain * thread::hardware_concurrency()/(numa_max_node() + 1)),
       finished(false),
       available_nodes(numa_max_node() + 1),
       indeces(available_nodes, 0),
@@ -31,23 +29,24 @@ ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, u
       threadToPartition(NUM_OF_THREADS),
       firstThreadDomain(available_nodes, 0),
       numThreadsDomain(available_nodes) {
-  pcsr = new PPPCSR(init_num_nodes, init_num_nodes, lock_search, available_nodes, partitions_per_domain, use_numa);
+        pcsr =
+            new PPPCSR(init_num_nodes, init_num_nodes, lock_search, available_nodes, partitions_per_domain, use_numa);
 
-  int d = available_nodes;
-  int minNumThreads = NUM_OF_THREADS / d;
-  int threshold = NUM_OF_THREADS % d;
-  int counter = 0;
-  int currentDomain = 0;
+        int d = available_nodes;
+        int minNumThreads = NUM_OF_THREADS / d;
+        int threshold = NUM_OF_THREADS % d;
+        int counter = 0;
+        int currentDomain = 0;
 
-  for (int i = 0; i < NUM_OF_THREADS; i++) {
-    threadToDomain[i] = currentDomain;
-    counter++;
-    if (counter == minNumThreads + (currentDomain < threshold)) {
-      numThreadsDomain[currentDomain] = counter;
-      firstThreadDomain[currentDomain] = i - counter + 1;
-      counter = 0;
-      currentDomain++;
-    }
+        for (int i = 0; i < NUM_OF_THREADS; i++) {
+          threadToDomain[i] = currentDomain;
+          counter++;
+          if (counter == minNumThreads + (currentDomain < threshold)) {
+            numThreadsDomain[currentDomain] = counter;
+            firstThreadDomain[currentDomain] = i - counter + 1;
+            counter = 0;
+            currentDomain++;
+          }
   }
 }
 
@@ -102,24 +101,27 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
 
 // Submit an update for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
-  auto par = pcsr->get_partiton(src);
-  auto queue_id = par % numberOfQueues;
+  // auto par = pcsr->get_partiton(src);
+  // auto queue_id = par % numberOfQueues;
+  auto queue_id = thread_id / (thread::hardware_concurrency() / (numa_max_node() + 1));
   threadToPartition[thread_id] = queue_id;
   tasks[queue_id].push(task{true, false, src, target});
 }
 
 // Submit a delete edge task for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_delete(int thread_id, int src, int target) {
-  auto par = pcsr->get_partiton(src);
-  auto queue_id = par % numberOfQueues;
+  // auto par = pcsr->get_partiton(src);
+  // auto queue_id = par % numberOfQueues;
+  auto queue_id = thread_id / (thread::hardware_concurrency() / (numa_max_node() + 1));
   threadToPartition[thread_id] = queue_id;
   tasks[queue_id].push(task{false, false, src, target});
 }
 
 // Submit a read neighbourhood task for vertex src to thread with number thread_id
 void ThreadPoolPPPCSR::submit_read(int thread_id, int src) {
-  auto par = pcsr->get_partiton(src);
-  auto queue_id = par % numberOfQueues;
+  // auto par = pcsr->get_partiton(src);
+  // auto queue_id = par % numberOfQueues;
+  auto queue_id = thread_id / (thread::hardware_concurrency() / (numa_max_node() + 1));
   threadToPartition[thread_id] = queue_id;
   tasks[queue_id].push(task{false, true, src, src});
 }
