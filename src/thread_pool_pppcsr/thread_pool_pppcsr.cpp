@@ -19,8 +19,9 @@ using namespace std;
  */
 ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes,
                                    int partitions_per_domain, bool use_numa)
-    : numberOfQueues((numa_max_node() + 1) * partitions_per_domain * thread::hardware_concurrency()/(numa_max_node() + 1)),
-      tasks((numa_max_node() + 1) * partitions_per_domain * thread::hardware_concurrency()/(numa_max_node() + 1)),
+    : numberOfQueues((numa_max_node() + 1) * partitions_per_domain * (size_t)(thread::hardware_concurrency()/(double)(numa_max_node() + 1))),
+    threadsPerDomain((size_t)(thread::hardware_concurrency()/(double)(numa_max_node() + 1))),
+      tasks((numa_max_node() + 1) * partitions_per_domain * (size_t)(thread::hardware_concurrency()/(double)(numa_max_node() + 1))),
       finished(false),
       available_nodes(numa_max_node() + 1),
       indeces(available_nodes, 0),
@@ -103,7 +104,7 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
 void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
   // auto par = pcsr->get_partiton(src);
   // auto queue_id = par % numberOfQueues;
-  auto queue_id = thread_id / (thread::hardware_concurrency() / (numa_max_node() + 1));
+  auto queue_id = (size_t)(thread_id / (double)threadsPerDomain);
   threadToPartition[thread_id] = queue_id;
   tasks[queue_id].push(task{true, false, src, target});
 }
@@ -112,7 +113,7 @@ void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
 void ThreadPoolPPPCSR::submit_delete(int thread_id, int src, int target) {
   // auto par = pcsr->get_partiton(src);
   // auto queue_id = par % numberOfQueues;
-  auto queue_id = thread_id / (thread::hardware_concurrency() / (numa_max_node() + 1));
+  auto queue_id = (size_t)(thread_id / (double)threadsPerDomain);
   threadToPartition[thread_id] = queue_id;
   tasks[queue_id].push(task{false, false, src, target});
 }
@@ -121,7 +122,7 @@ void ThreadPoolPPPCSR::submit_delete(int thread_id, int src, int target) {
 void ThreadPoolPPPCSR::submit_read(int thread_id, int src) {
   // auto par = pcsr->get_partiton(src);
   // auto queue_id = par % numberOfQueues;
-  auto queue_id = thread_id / (thread::hardware_concurrency() / (numa_max_node() + 1));
+  auto queue_id = (size_t)(thread_id / (double)threadsPerDomain);
   threadToPartition[thread_id] = queue_id;
   tasks[queue_id].push(task{false, true, src, src});
 }

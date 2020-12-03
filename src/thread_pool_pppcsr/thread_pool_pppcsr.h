@@ -43,6 +43,7 @@ class ThreadPoolPPPCSR {
   void execute(int);
 
   const int available_nodes;
+  const size_t threadsPerDomain;
   std::vector<unsigned> indeces;
   int partitions_per_domain = 1;
   std::vector<int> threadToDomain;
