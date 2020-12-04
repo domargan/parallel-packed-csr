@@ -64,11 +64,11 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
   auto queueCounter = 1;
 
   while (!tasks[queue_id].empty() || (!isMasterThread && !finished)) {
-    while(queueCounter < numberOfQueues && 
-            tasks[queue_id].empty()){
-        queue_id = (queue_id + 1) % numberOfQueues;
-        queueCounter++;
-    }
+    // while(queueCounter < numberOfQueues && 
+    //         tasks[queue_id].empty()){
+    //     queue_id = (queue_id + 1) % numberOfQueues;
+    //     queueCounter++;
+    // }
     if (!tasks[queue_id].empty()) {
       task t = tasks[queue_id].front();
 
@@ -104,7 +104,9 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
 void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
   // auto par = pcsr->get_partiton(src);
   // auto queue_id = par % numberOfQueues;
-  auto queue_id = (size_t)(thread_id / (double)threadsPerDomain);
+  // auto queue_id = (size_t)(thread_id / (double)threadsPerDomain);
+  auto queue_id = queueTurn;
+  queueTurn = (queueTurn + 1) % numberOfQueues;
   threadToPartition[thread_id] = queue_id;
   tasks[queue_id].push(task{true, false, src, target});
 }
@@ -113,7 +115,9 @@ void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
 void ThreadPoolPPPCSR::submit_delete(int thread_id, int src, int target) {
   // auto par = pcsr->get_partiton(src);
   // auto queue_id = par % numberOfQueues;
-  auto queue_id = (size_t)(thread_id / (double)threadsPerDomain);
+  // auto queue_id = (size_t)(thread_id / (double)threadsPerDomain);
+  auto queue_id = queueTurn;
+  queueTurn = (queueTurn + 1) % numberOfQueues;
   threadToPartition[thread_id] = queue_id;
   tasks[queue_id].push(task{false, false, src, target});
 }
@@ -122,7 +126,9 @@ void ThreadPoolPPPCSR::submit_delete(int thread_id, int src, int target) {
 void ThreadPoolPPPCSR::submit_read(int thread_id, int src) {
   // auto par = pcsr->get_partiton(src);
   // auto queue_id = par % numberOfQueues;
-  auto queue_id = (size_t)(thread_id / (double)threadsPerDomain);
+  // auto queue_id = (size_t)(thread_id / (double)threadsPerDomain);
+  auto queue_id = queueTurn;
+  queueTurn = (queueTurn + 1) % numberOfQueues;
   threadToPartition[thread_id] = queue_id;
   tasks[queue_id].push(task{false, true, src, src});
 }
