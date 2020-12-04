@@ -19,9 +19,9 @@ using namespace std;
  */
 ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes,
                                    int partitions_per_domain, bool use_numa)
-    : numberOfQueues((numa_max_node() + 1) * partitions_per_domain * (size_t)(thread::hardware_concurrency()/(double)(numa_max_node() + 1))),
+    : numberOfQueues(min(((numa_max_node() + 1) * partitions_per_domain * (size_t)(thread::hardware_concurrency()/(double)(numa_max_node() + 1))), (size_t)NUM_OF_THREADS)),
     threadsPerDomain((size_t)(thread::hardware_concurrency()/(double)(numa_max_node() + 1))),
-      tasks((numa_max_node() + 1) * partitions_per_domain * (size_t)(thread::hardware_concurrency()/(double)(numa_max_node() + 1))),
+      tasks(min(((numa_max_node() + 1) * partitions_per_domain * (size_t)(thread::hardware_concurrency()/(double)(numa_max_node() + 1))), (size_t)NUM_OF_THREADS)),
       finished(false),
       available_nodes(numa_max_node() + 1),
       indeces(available_nodes, 0),
