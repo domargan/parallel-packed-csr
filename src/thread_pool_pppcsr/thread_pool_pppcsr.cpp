@@ -19,9 +19,8 @@ using namespace std;
  */
 ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes,
                                    int partitions_per_domain, bool use_numa)
-    : numberOfQueues(min(((numa_max_node() + 1) * partitions_per_domain * (size_t)(thread::hardware_concurrency()/(double)(numa_max_node() + 1))), (size_t)NUM_OF_THREADS)),
-    threadsPerDomain((size_t)(thread::hardware_concurrency()/(double)(numa_max_node() + 1))),
-      tasks(min(((numa_max_node() + 1) * partitions_per_domain * (size_t)(thread::hardware_concurrency()/(double)(numa_max_node() + 1))), (size_t)NUM_OF_THREADS)),
+    : numberOfQueues(min((numa_max_node() + 1) * partitions_per_domain, NUM_OF_THREADS)),
+      tasks(min((numa_max_node() + 1) * partitions_per_domain, NUM_OF_THREADS)),
       finished(false),
       available_nodes(numa_max_node() + 1),
       indeces(available_nodes, 0),
@@ -64,15 +63,16 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
   auto queueCounter = 1;
 
   while (!tasks[queue_id].empty() || (!isMasterThread && !finished)) {
-    // while(queueCounter < numberOfQueues && 
-    //         tasks[queue_id].empty()){
-    //     queue_id = (queue_id + 1) % numberOfQueues;
-    //     queueCounter++;
-    // }
+    while(queueCounter <= numberOfQueues && 
+            tasks[queue_id].empty()){
+        queue_id = (queue_id + 1) % numberOfQueues;
+        queueCounter++;
+    }
     if (!tasks[queue_id].empty()) {
       task t = tasks[queue_id].front();
 
-      int currentPar = pcsr->get_partiton(t.src);
+    //  int currentPar = pcsr->get_partiton(t.src);
+      int currentPar = threadToDomain[thread_id];
 
       if (registered != currentPar) {
         if (registered != -1) {
@@ -102,34 +102,31 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
 
 // Submit an update for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
-  // auto par = pcsr->get_partiton(src);
-  // auto queue_id = par % numberOfQueues;
+  auto par = pcsr->get_partiton(src);
+  auto queue_id = par % numberOfQueues;
   // auto queue_id = (size_t)(thread_id / (double)threadsPerDomain);
-  auto queue_id = queueTurn;
+  threadToPartition[thread_id] = queueTurn;
   queueTurn = (queueTurn + 1) % numberOfQueues;
-  threadToPartition[thread_id] = queue_id;
   tasks[queue_id].push(task{true, false, src, target});
 }
 
 // Submit a delete edge task for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_delete(int thread_id, int src, int target) {
-  // auto par = pcsr->get_partiton(src);
-  // auto queue_id = par % numberOfQueues;
+  auto par = pcsr->get_partiton(src);
+  auto queue_id = par % numberOfQueues;
   // auto queue_id = (size_t)(thread_id / (double)threadsPerDomain);
-  auto queue_id = queueTurn;
+  threadToPartition[thread_id] = queueTurn;
   queueTurn = (queueTurn + 1) % numberOfQueues;
-  threadToPartition[thread_id] = queue_id;
   tasks[queue_id].push(task{false, false, src, target});
 }
 
 // Submit a read neighbourhood task for vertex src to thread with number thread_id
 void ThreadPoolPPPCSR::submit_read(int thread_id, int src) {
-  // auto par = pcsr->get_partiton(src);
-  // auto queue_id = par % numberOfQueues;
+  auto par = pcsr->get_partiton(src);
+  auto queue_id = par % numberOfQueues;
   // auto queue_id = (size_t)(thread_id / (double)threadsPerDomain);
-  auto queue_id = queueTurn;
+  threadToPartition[thread_id] = queueTurn;
   queueTurn = (queueTurn + 1) % numberOfQueues;
-  threadToPartition[thread_id] = queue_id;
   tasks[queue_id].push(task{false, true, src, src});
 }
 
