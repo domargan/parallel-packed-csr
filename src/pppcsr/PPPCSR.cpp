@@ -30,7 +30,7 @@ PPPCSR::PPPCSR(uint32_t init_n, uint32_t src_n, bool lock_search, int numDomain,
       partitions.emplace_back(partitionSize, partitionSize, lock_search, (use_numa) ? i : -1);
     }
   }
-  cout << "Number of partitions: " << partitions.size() << std::endl;
+  // cout << "Number of partitions: " << partitions.size() << std::endl;
 }
 
 bool PPPCSR::edge_exists(uint32_t src, uint32_t dest) {
