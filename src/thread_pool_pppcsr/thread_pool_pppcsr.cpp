@@ -11,6 +11,7 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <cmath>
 
 using namespace std;
 
@@ -18,17 +19,27 @@ using namespace std;
  * Initializes a pool of threads. Every thread has its own task queue.
  */
 ThreadPoolPPPCSR::ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes,
-                                   int partitions_per_domain, bool use_numa)
-    : numberOfQueues(min((numa_max_node() + 1) * partitions_per_domain, NUM_OF_THREADS)),
-      tasks(min((numa_max_node() + 1) * partitions_per_domain, NUM_OF_THREADS)),
-      finished(false),
+                                   int partitions_per_domain, bool use_numa, bool balance)
+    : finished(false),
       available_nodes(numa_max_node() + 1),
       indeces(available_nodes, 0),
       partitions_per_domain(partitions_per_domain),
       threadToDomain(NUM_OF_THREADS),
-      threadToPartition(NUM_OF_THREADS),
+      threadToQueue(NUM_OF_THREADS),
       firstThreadDomain(available_nodes, 0),
-      numThreadsDomain(available_nodes) {
+      numThreadsDomain(available_nodes),
+      balance(balance) {
+
+        if(balance){
+          numberOfQueues = min(available_nodes * partitions_per_domain, NUM_OF_THREADS);
+        }
+        else{
+          auto threadsPerDomain = thread::hardware_concurrency()/available_nodes;
+          numberOfQueues = ceil(NUM_OF_THREADS/ (double)threadsPerDomain);
+        }
+
+        tasks = vector<moodycamel::ConcurrentQueue<task>>(numberOfQueues);
+
         pcsr =
             new PPPCSR(init_num_nodes, init_num_nodes, lock_search, available_nodes, partitions_per_domain, use_numa);
 
@@ -59,7 +70,7 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
     numa_run_on_node(threadToDomain[thread_id]);
   }
   int registered = -1;
-  auto queue_id = threadToPartition[thread_id];
+  auto queue_id = threadToQueue[thread_id];
   auto queueCounter = 1;
 
   while (!tasks[queue_id].empty() || (!isMasterThread && !finished)) {
@@ -71,10 +82,9 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
     if (!tasks[queue_id].empty()) {
       task t = tasks[queue_id].front();
 
-    //  int currentPar = pcsr->get_partiton(t.src);
-      int currentPar = threadToPartition[thread_id];
+    int currentPar = threadToQueue[thread_id];
 
-      if (registered != currentPar) {
+    if (registered != currentPar) {
         if (registered != -1) {
           pcsr->unregisterThread(registered);
         }
@@ -103,33 +113,27 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
 // Submit an update for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_add(int thread_id, int src, int target) {
   auto par = pcsr->get_partiton(src);
-  auto queue_id = par % numberOfQueues;
-  // auto queue_id = (size_t)(thread_id / (double)threadsPerDomain);
-  // threadToPartition[thread_id] = queueTurn;
-  // queueTurn = (queueTurn + 1) % numberOfQueues;
-  threadToPartition[thread_id] = queue_id;
+  auto queue_id = balance ? queueTurn : par % numberOfQueues;
+  threadToQueue[thread_id] = queue_id;
+  queueTurn = (queueTurn + 1) % numberOfQueues;
   tasks[queue_id].push(task{true, false, src, target});
 }
 
 // Submit a delete edge task for edge {src, target} to thread with number thread_id
 void ThreadPoolPPPCSR::submit_delete(int thread_id, int src, int target) {
   auto par = pcsr->get_partiton(src);
-  auto queue_id = par % numberOfQueues;
-  // auto queue_id = (size_t)(thread_id / (double)threadsPerDomain);
-  // threadToPartition[thread_id] = queueTurn;
-  // queueTurn = (queueTurn + 1) % numberOfQueues;
-  threadToPartition[thread_id] = queue_id;
+  auto queue_id = balance ? queueTurn : par % numberOfQueues;
+  threadToQueue[thread_id] = queue_id;
+  queueTurn = (queueTurn + 1) % numberOfQueues;
   tasks[queue_id].push(task{false, false, src, target});
 }
 
 // Submit a read neighbourhood task for vertex src to thread with number thread_id
 void ThreadPoolPPPCSR::submit_read(int thread_id, int src) {
   auto par = pcsr->get_partiton(src);
-  auto queue_id = par % numberOfQueues;
-  // auto queue_id = (size_t)(thread_id / (double)threadsPerDomain);
-  // threadToPartition[thread_id] = queueTurn;
-  // queueTurn = (queueTurn + 1) % numberOfQueues;
-  threadToPartition[thread_id] = queue_id;
+  auto queue_id = balance ? queueTurn : par % numberOfQueues;
+  threadToQueue[thread_id] = queue_id;
+  queueTurn = (queueTurn + 1) % numberOfQueues;
   tasks[queue_id].push(task{false, true, src, src});
 }
 

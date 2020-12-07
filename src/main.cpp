@@ -120,6 +120,7 @@ int main(int argc, char *argv[]) {
   int num_nodes = 0;
   bool lock_search = true;
   bool insert = true;
+  bool balance = true;
   Version v = Version::PPPCSRNUMA;
   int partitions_per_domain = 1;
   vector<tuple<Operation, int, int>> core_graph;
@@ -136,6 +137,10 @@ int main(int argc, char *argv[]) {
       insert = true;
     } else if (s.rfind("-delete", 0) == 0) {
       insert = false;
+    } else if (s.rfind("-balance", 0) == 0) {
+      balance = true;
+    } else if (s.rfind("-cluster", 0) == 0) {
+      balance = false;
     } else if (s.rfind("-pppcsrnuma", 0) == 0) {
       v = Version::PPPCSRNUMA;
     } else if (s.rfind("-pppcsr", 0) == 0) {
@@ -180,13 +185,13 @@ int main(int argc, char *argv[]) {
     }
     case Version::PPPCSR: {
       auto thread_pool =
-          make_unique<ThreadPoolPPPCSR>(threads, lock_search, num_nodes + 1, partitions_per_domain, false);
+          make_unique<ThreadPoolPPPCSR>(threads, lock_search, num_nodes + 1, partitions_per_domain, false, balance);
       execute(threads, size, core_graph, updates, thread_pool);
       break;
     }
     default: {
       auto thread_pool =
-          make_unique<ThreadPoolPPPCSR>(threads, lock_search, num_nodes + 1, partitions_per_domain, true);
+          make_unique<ThreadPoolPPPCSR>(threads, lock_search, num_nodes + 1, partitions_per_domain, true, balance);
       execute(threads, size, core_graph, updates, thread_pool);
     }
   }

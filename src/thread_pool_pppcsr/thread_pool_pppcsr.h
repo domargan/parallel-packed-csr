@@ -22,7 +22,7 @@ class ThreadPoolPPPCSR {
   PPPCSR *pcsr;
 
   explicit ThreadPoolPPPCSR(const int NUM_OF_THREADS, bool lock_search, uint32_t init_num_nodes,
-                            int partitions_per_domain, bool use_numa);
+                            int partitions_per_domain, bool use_numa, bool balance);
   ~ThreadPoolPPPCSR() = default;
   /** Public API */
   void submit_add(int thread_id, int src, int dest);     // submit task to thread {thread_id} to insert edge {src, dest}
@@ -43,11 +43,12 @@ class ThreadPoolPPPCSR {
   void execute(int);
 
   const int available_nodes;
+  const bool balance;
   size_t queueTurn = 0;
   std::vector<unsigned> indeces;
   int partitions_per_domain = 1;
   std::vector<int> threadToDomain;
-  std::vector<int> threadToPartition;
+  std::vector<int> threadToQueue;
   std::vector<int> firstThreadDomain;
   std::vector<int> numThreadsDomain;
 };
