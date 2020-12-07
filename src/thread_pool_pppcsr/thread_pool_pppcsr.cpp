@@ -72,7 +72,7 @@ void ThreadPoolPPPCSR::execute(const int thread_id) {
       task t = tasks[queue_id].front();
 
     //  int currentPar = pcsr->get_partiton(t.src);
-      int currentPar = threadToDomain[thread_id];
+      int currentPar = threadToPartition[thread_id];
 
       if (registered != currentPar) {
         if (registered != -1) {
