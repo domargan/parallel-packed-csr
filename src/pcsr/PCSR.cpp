@@ -69,7 +69,7 @@ void PCSR::resizeEdgeArray(size_t newSize) {
   edges.N = newSize;
   edges.logN = (1 << bsr_word(bsr_word(edges.N) * 2 + 1));
   edges.H = bsr_word(edges.N / edges.logN);
-  std::cout << "Edges: " << edges.N << " logN: " << edges.logN << " #count: " << edges.N / edges.logN << std::endl;
+  // std::cout << "Edges: " << edges.N << " logN: " << edges.logN << " #count: " << edges.N / edges.logN << std::endl;
 }
 
 void PCSR::clear() {
