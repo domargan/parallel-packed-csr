@@ -10,6 +10,10 @@
 
 #include "hybridLock.h"
 
+// Build on Ubuntu 22 with GNU 11.2.0
+#include <memory>
+#include <condition_variable>
+
 using namespace std;
 #ifndef PCSR2_PCSR_H
 #define PCSR2_PCSR_H
