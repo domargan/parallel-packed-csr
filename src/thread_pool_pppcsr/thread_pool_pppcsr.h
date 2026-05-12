@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "../pppcsr/PPPCSR.h"
+#include "../utility/concurrentqueue.h"
 #include "task.h"
 
 using namespace std;
@@ -30,7 +31,7 @@ class ThreadPoolPPPCSR {
 
  private:
   vector<thread> thread_pool;
-  vector<queue<task>> tasks;
+  moodycamel::ConcurrentQueue<task> tasks;
   chrono::steady_clock::time_point s;
   chrono::steady_clock::time_point end;
   std::atomic_bool finished;
